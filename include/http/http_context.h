@@ -1,4 +1,5 @@
 #pragma once
+
 #include "http_request.h"
 #include <muduo/net/TcpServer.h>
 #include <string_view>
@@ -19,18 +20,27 @@ namespace zhttp
 
     public:
         HttpContext() = default;
+
         ~HttpContext() = default;
+
     public:
         // 将报文解析成HttpRequest对象
-        bool parse_request(muduo::net::Buffer *buffer,muduo::Timestamp receive_time);
+        bool parse_request(muduo::net::Buffer *buffer, muduo::Timestamp receive_time);
 
         // 解析是否完成
         bool is_parse_complete() const;
+
+        const HttpRequest &request() const
+        {
+            return request_;
+        }
     private:
         // 解析请求行
-        bool parse_request_line(const std::string_view &line, const muduo::Timestamp& receive_time);
+        bool parse_request_line(const std::string_view &line, const muduo::Timestamp &receive_time);
+
         // 解析请求头
         bool parse_headers(const std::string_view &line);
+
         // 解析请求体
         void parse_body(muduo::net::Buffer *buffer);
 
