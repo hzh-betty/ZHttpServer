@@ -22,6 +22,7 @@ set(SERVER_SRC
 set(TEST_SRC
         test/http/test.cpp
         test/http/test_http_request.h
+        test/http/test_http_context.h
 )
 
 # 主程序可执行文件
@@ -29,8 +30,8 @@ add_executable(my_server ${SERVER_SRC})
 target_link_libraries(my_server ${MUDUO_NET_LIB} ${MUDUO_BASE_LIB} pthread)
 
 # 测试可执行文件
-add_executable(unit_tests ${TEST_SRC} source/http/http_request.cpp)
-target_link_libraries(unit_tests GTest::GTest GTest::Main ${MUDUO_BASE_LIB} pthread)
+add_executable(unit_tests ${TEST_SRC} source/http/http_request.cpp source/http/http_context.cpp)
+target_link_libraries(unit_tests GTest::GTest GTest::Main ${MUDUO_NET_LIB} ${MUDUO_BASE_LIB} pthread)
 
 # 启用测试
 enable_testing()

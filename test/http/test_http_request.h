@@ -4,7 +4,7 @@
 #include <muduo/base/Timestamp.h>
 
 
-namespace zttp
+namespace zhttp
 {
     
     TEST(HttpRequestTest, Method)

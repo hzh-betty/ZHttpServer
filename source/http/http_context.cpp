@@ -4,6 +4,9 @@ namespace zhttp
 {
     bool HttpContext::parse_request(muduo::net::Buffer *buffer, muduo::Timestamp receive_time)
     {
+        if(buffer->readableBytes() == 0)
+            return false;
+
         bool check = true; // 解析数据是否正确
         bool loop = true; // 是否需要继续解析
         while (loop)
@@ -28,8 +31,17 @@ namespace zhttp
             }
             else
             {
-               parse_body(buffer);
-               loop = false;
+                if (state_ == HttpRequestParseState::ExpectBody)
+                {
+                    // 解析请求体
+                    parse_body(buffer);
+                }
+                else
+                {
+                    // 没有找到\r\n，继续读取数据
+                    check = false;
+                }
+                break;
             }
         }
 
