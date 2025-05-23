@@ -16,6 +16,8 @@ set(SERVER_SRC
         include/http/http_request.h
         source/http/http_context.cpp
         source/http/http_request.cpp
+        include/http/http_response.h
+        source/http/http_response.cpp
 )
 
 # 测试源文件
@@ -23,6 +25,10 @@ set(TEST_SRC
         test/http/test.cpp
         test/http/test_http_request.h
         test/http/test_http_context.h
+        test/http/test_http_response.h
+        source/http/http_request.cpp
+        source/http/http_context.cpp
+        source/http/http_response.cpp
 )
 
 # 主程序可执行文件
@@ -30,7 +36,7 @@ add_executable(my_server ${SERVER_SRC})
 target_link_libraries(my_server ${MUDUO_NET_LIB} ${MUDUO_BASE_LIB} pthread)
 
 # 测试可执行文件
-add_executable(unit_tests ${TEST_SRC} source/http/http_request.cpp source/http/http_context.cpp)
+add_executable(unit_tests ${TEST_SRC} )
 target_link_libraries(unit_tests GTest::GTest GTest::Main ${MUDUO_NET_LIB} ${MUDUO_BASE_LIB} pthread)
 
 # 启用测试
