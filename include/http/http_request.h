@@ -42,8 +42,8 @@ namespace zhttp
         std::string get_path_parameters(const std::string &key) const;
 
         // 设置与获取请求查询参数
-        void set_qurey_parameters(const std::string_view &str);
-        std::string get_qurey_parameters(const std::string &key) const;
+        void set_query_parameters(const std::string_view &str);
+        std::string get_query_parameters(const std::string &key) const;
 
         // 设置与获取接收时间
         void set_receive_time(const muduo::Timestamp &time);

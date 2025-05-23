@@ -1,4 +1,4 @@
-#include "../include/http_context.h"
+#include "../../include/http/http_context.h"
 
 namespace zhttp
 {
@@ -80,7 +80,7 @@ namespace zhttp
 
             // 设置路径参数
             std::string_view path_parameters = line.substr(pos1 + 1, pos2 - pos1 - 1);
-            request_.set_qurey_parameters(path_parameters);
+            request_.set_query_parameters(path_parameters);
         }
         else
         {
