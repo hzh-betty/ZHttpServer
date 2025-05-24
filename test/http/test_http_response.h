@@ -4,14 +4,15 @@
 
 namespace zhttp
 {
-
-    TEST(HttpResponseTest, Version) {
+    TEST(HttpResponseTest, Version)
+    {
         HttpResponse resp;
         resp.set_version("HTTP/1.1");
         EXPECT_EQ(resp.get_version(), "HTTP/1.1");
     }
 
-    TEST(HttpResponseTest, StatusCodeAndMessage) {
+    TEST(HttpResponseTest, StatusCodeAndMessage)
+    {
         HttpResponse resp;
         resp.set_status_code(HttpResponse::StatusCode::NotFound);
         resp.set_status_message("Not Found");
@@ -19,7 +20,8 @@ namespace zhttp
         EXPECT_EQ(resp.get_status_message(), "Not Found");
     }
 
-    TEST(HttpResponseTest, SetResponseLine) {
+    TEST(HttpResponseTest, SetResponseLine)
+    {
         HttpResponse resp;
         resp.set_response_line("HTTP/1.0", HttpResponse::StatusCode::OK, "OK");
         EXPECT_EQ(resp.get_version(), "HTTP/1.0");
@@ -27,20 +29,23 @@ namespace zhttp
         EXPECT_EQ(resp.get_status_message(), "OK");
     }
 
-    TEST(HttpResponseTest, Header) {
+    TEST(HttpResponseTest, Header)
+    {
         HttpResponse resp;
         resp.set_header("Content-Type", "text/plain");
         EXPECT_EQ(resp.get_header("Content-Type"), "text/plain");
         EXPECT_EQ(resp.get_header("Not-Exist"), "");
     }
 
-    TEST(HttpResponseTest, Body) {
+    TEST(HttpResponseTest, Body)
+    {
         HttpResponse resp;
         resp.set_body("hello world");
         EXPECT_EQ(resp.get_body(), "hello world");
     }
 
-    TEST(HttpResponseTest, ContentTypeAndLength) {
+    TEST(HttpResponseTest, ContentTypeAndLength)
+    {
         HttpResponse resp;
         resp.set_content_type("application/json");
         resp.set_content_length(123);
@@ -48,7 +53,8 @@ namespace zhttp
         EXPECT_EQ(resp.get_header("Content-Length"), "123");
     }
 
-    TEST(HttpResponseTest, KeepAlive) {
+    TEST(HttpResponseTest, KeepAlive)
+    {
         HttpResponse resp;
         resp.set_keep_alive(true);
         EXPECT_TRUE(resp.is_keep_alive());
@@ -58,7 +64,8 @@ namespace zhttp
         EXPECT_EQ(resp.get_header("Connection"), "close");
     }
 
-    TEST(HttpResponseTest, AppendBuffer) {
+    TEST(HttpResponseTest, AppendBuffer)
+    {
         HttpResponse resp;
         resp.set_response_line("HTTP/1.1", HttpResponse::StatusCode::OK, "OK");
         resp.set_header("Content-Type", "text/html");
