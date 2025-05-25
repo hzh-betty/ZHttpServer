@@ -71,7 +71,7 @@ namespace zhttp
     {
         HttpContext ctx;
         muduo::net::Buffer buf;
-        std::string req = "POST /submit HTTP/1.1\r\nContent-Length : 10\r\n\r\nhelloextra";
+        std::string req = "POST /submit HTTP/1.0\r\nContent-Length : 10\r\n\r\nhelloextra";
         buf.append(req);
         muduo::Timestamp now = muduo::Timestamp::now();
 
@@ -80,7 +80,7 @@ namespace zhttp
         EXPECT_TRUE(ctx.is_parse_complete());
         EXPECT_EQ(ctx.request().get_method(), HttpRequest::Method::POST);
         EXPECT_EQ(ctx.request().get_path(), "/submit");
-        EXPECT_EQ(ctx.request().get_version(), "HTTP/1.1");
+        EXPECT_EQ(ctx.request().get_version(), "HTTP/1.0");
         EXPECT_EQ(ctx.request().get_content_length(), 10);
         EXPECT_EQ(ctx.request().get_content(), "helloextra");
     }
