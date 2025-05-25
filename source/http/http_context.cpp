@@ -4,7 +4,7 @@ namespace zhttp
 {
     bool HttpContext::parse_request(muduo::net::Buffer *buffer, muduo::Timestamp receive_time)
     {
-        if(buffer->readableBytes() == 0)
+        if (buffer->readableBytes() == 0)
             return false;
 
         bool check = true; // 解析数据是否正确
@@ -69,8 +69,6 @@ namespace zhttp
             request_.set_method(HttpRequest::Method::PUT);
         else if (method == "DELETE")
             request_.set_method(HttpRequest::Method::DELETE);
-        else if (method == "HEAD")
-            request_.set_method(HttpRequest::Method::HEAD);
         else if (method == "OPTIONS")
             request_.set_method(HttpRequest::Method::OPTIONS);
         else
@@ -84,7 +82,7 @@ namespace zhttp
         if (pos2 == std::string_view::npos)
             return false;
 
-        if(pos1 != std::string_view::npos)
+        if (pos1 != std::string_view::npos)
         {
             // 解析路径参数并设置路径
             std::string_view path = line.substr(pos + 1, pos1 - pos - 1);
@@ -118,17 +116,17 @@ namespace zhttp
     {
         // 解析请求头
         // Content-Length: 1234
-        auto colon = line.find(':',0);
+        auto colon = line.find(':', 0);
 
         // 查找到一个报头
         if (colon != std::string_view::npos)
         {
             std::string_view first = line.substr(0, colon);
             std::string_view second = line.substr(colon + 1);
-            request_.set_header(first,second);
+            request_.set_header(first, second);
             return true;
         }
-        // 解析到空行，表示请求头结束
+            // 解析到空行，表示请求头结束
         else if (line.empty())
         {
             if (!request_.get_header("Content-Length").empty())
@@ -155,7 +153,7 @@ namespace zhttp
         // 如果请求体长度为0，或者buffer数据足够
         if (buffer->readableBytes() >= request_.get_content_length())
         {
-            std::string_view content (buffer->peek(), request_.get_content_length());
+            std::string_view content(buffer->peek(), request_.get_content_length());
             request_.set_content(content);
             buffer->retrieve(request_.get_content_length());
             state_ = HttpRequestParseState::ExpectComplete;

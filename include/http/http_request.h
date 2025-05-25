@@ -18,7 +18,6 @@ namespace zhttp
             POST,
             PUT,
             DELETE,
-            HEAD,
             OPTIONS,
         };
 

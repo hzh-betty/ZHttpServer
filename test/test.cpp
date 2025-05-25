@@ -8,6 +8,8 @@
 #include "session/test_session_storage.h"
 #include "session/test_session_manager.h"
 
+#include "middleware/test_middleware_chain.h"
+#include "middleware/test_cors_middle.h"
 int main()
 {
     ::testing::InitGoogleTest();

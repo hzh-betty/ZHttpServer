@@ -38,12 +38,17 @@ file(GLOB SESSION_SRC
         ${PROJECT_SOURCE_DIR}/source/session/*.cpp
 )
 
+# 添加中间件相关的源文件
+file(GLOB_RECURSE MIDDLEWARE_SRC
+        ${PROJECT_SOURCE_DIR}/source/middleware/*.cpp
+)
 
 # 所有项目相关源文件
 file(GLOB ALL_SRC
         ${HTTP_SRC}
         ${ROUTER_SRC}
         ${SESSION_SRC}
+        ${MIDDLEWARE_SRC}
 )
 
 
