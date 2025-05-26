@@ -32,17 +32,18 @@ namespace zhttp::zmiddleware
             if (std::find(config_.allow_origins_.begin(), config_.allow_origins_.end(), "*") !=
                 config_.allow_origins_.end())
             {
-                response.set_header("Access-Control-Allow-Origin", "*");
+                add_cors_headers(response, "*");
             }
             else
             {
                 // 否则设置允许的源
-                response.set_header("Access-Control-Allow-Origin", config_.allow_origins_[0]);
+                add_cors_headers(response, config_.allow_origins_[0]);
             }
         }
         else
         {
-            response.set_header("Access-Control-Allow-Origin", "*");
+            // 如果没有允许的源，则允许所有源
+            add_cors_headers(response, "*");
         }
     }
 
@@ -86,43 +87,45 @@ namespace zhttp::zmiddleware
 
         add_cors_headers(response, origin);
         response.set_status_code(HttpResponse::StatusCode::NoContent);
+        LOG_INFO << "Preflight request processed successfully";
     }
 
 
     // 添加CORS头部
     void CorsMiddleware::add_cors_headers(HttpResponse &response, const std::string &origin) const
     {
-        try
+        // 设置允许的源
+        response.set_header("Access-Control-Allow-Origin", origin);
+
+        // 设置凭证
+        if (config_.allow_credentials)
         {
-            response.set_header("Access-Control-Allow-Origin", origin);
-
-            // 设置凭证
-            if (config_.allow_credentials)
-            {
-                response.set_header("Access-Control-Allow-Credentials", "true");
-            }
-
-            // 设置允许的请求头
-            if (!config_.allow_methods_.empty())
-            {
-                response.set_header("Access-Control-Allow-Methods",
-                                    join(config_.allow_methods_, ","));
-            }
-
-            // 最大缓存时间
-            response.set_header("Access-Control-Max-Age",
-                                std::to_string(config_.max_age));
-
-
-            LOG_DEBUG << "CORS headers added: "
-                      << "Access-Control-Allow-Origin: " << origin
-                      << ", Access-Control-Allow-Methods: " << join(config_.allow_methods_, ",")
-                      << ", Access-Control-Max-Age: " << config_.max_age;
+            response.set_header("Access-Control-Allow-Credentials", "true");
         }
-        catch (const std::exception &e)
+
+        // 设置允许的请求头
+        if (!config_.allow_methods_.empty())
         {
-            LOG_ERROR << "Error adding CORS headers: " << e.what();
+            response.set_header("Access-Control-Allow-Methods",
+                                join(config_.allow_methods_, ","));
         }
+
+        // 设置接受的请求头
+        if (!config_.allow_headers_.empty())
+        {
+            response.set_header("Access-Control-Allow-Headers",
+                                join(config_.allow_headers_, ","));
+        }
+
+        // 最大缓存时间
+        response.set_header("Access-Control-Max-Age",
+                            std::to_string(config_.max_age));
+
+        LOG_DEBUG << "CORS headers added: "
+                  << "Access-Control-Allow-Origin: " << origin
+                  << ", Access-Control-Allow-Methods: " << join(config_.allow_methods_, ",")
+                  << ", Access-Control-Max-Age: " << config_.max_age;
+
     }
 
 } // namespace zhttp::zmiddleware
