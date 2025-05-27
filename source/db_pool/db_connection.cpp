@@ -1,37 +1,17 @@
+#include <utility>
+
 #include "../../include/db_pool/db_connection.h"
 
 namespace zhttp::zdb
 {
-    DbConnection::DbConnection(const std::string &host, const std::string &user,
-                               const std::string &password, const std::string &database)
-            : host_(host), user_(user), password_(password), database_(database)
+    DbConnection::DbConnection(std::string host, std::string user,
+                               std::string password, std::string database)
+            : host_(std::move(host)), user_(std::move(user)), password_(std::move(password)), database_(std::move(database))
     {
         try
         {
             std::lock_guard<std::mutex> lockGuard(mutex_);
-            // 获取数据库驱动
-            sql::mysql::MySQL_Driver *driver = sql::mysql::get_mysql_driver_instance();
-
-            // 创建数据库连接
-            connection_.reset(driver->connect(host, user, password));
-
-            LOG_DEBUG << "Successfully created database connection to " << host << ":" << user << "@" << database;
-
-            if (connection_)
-            {
-                // 设置数据库
-                connection_->setSchema(database);
-
-                // 配置数据库连接
-                connection_->setClientOption("OPT_CONNECT_TIMEOUT", "10");
-                connection_->setClientOption("multi_statements", "false");
-
-                // 设置字符集为 utf8mb4，确保支持 Emoji 等多字节字符
-                std::unique_ptr<sql::Statement> stmt(connection_->createStatement());
-                stmt->execute("SET NAMES utf8mb4");
-                LOG_INFO << "Database connection established";
-            }
-
+            connect_helper();
         }
         catch (const sql::SQLException &e)
         {
@@ -105,16 +85,12 @@ namespace zhttp::zdb
         try
         {
             std::lock_guard<std::mutex> lockGuard(mutex_);
-            if (connection_)
-            {
-                connection_->reconnect();
-            }
-            else
-            {
-                sql::mysql::MySQL_Driver *driver = sql::mysql::get_mysql_driver_instance();
-                connection_.reset(driver->connect(host_, user_, password_));
-                connection_->setSchema(database_);
-            }
+
+            // 释放旧的连接
+            connection_.reset();
+
+            connect_helper();
+
         }
         catch (const sql::SQLException &e)
         {
@@ -162,6 +138,33 @@ namespace zhttp::zdb
             {
                 // 忽略重连错误
             }
+        }
+    }
+
+    // 辅助连接函数
+    void DbConnection::connect_helper()
+    {
+        // 获取数据库驱动
+        sql::mysql::MySQL_Driver *driver = sql::mysql::get_mysql_driver_instance();
+
+        // 创建数据库连接
+        connection_.reset(driver->connect(host_, user_, password_));
+
+        LOG_DEBUG << "Successfully created database connection to " << host_ << ":" << user_ << "@" << database_;
+
+        if (connection_)
+        {
+            // 设置数据库
+            connection_->setSchema(database_);
+
+            // 配置数据库连接
+            connection_->setClientOption("OPT_CONNECT_TIMEOUT", "10");
+            connection_->setClientOption("multi_statements", "false");
+
+            // 设置字符集为 utf8mb4，确保支持 Emoji 等多字节字符
+            std::unique_ptr<sql::Statement> stmt(connection_->createStatement());
+            stmt->execute("SET NAMES utf8mb4");
+            LOG_INFO << "Database connection established";
         }
     }
 

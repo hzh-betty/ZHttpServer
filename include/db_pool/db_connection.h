@@ -20,8 +20,8 @@ namespace zhttp::zdb
     class DbConnection
     {
     public:
-        DbConnection(const std::string &host, const std::string &user,
-                     const std::string &password, const std::string &database);
+        DbConnection(std::string host, std::string user,
+                     std::string password, std::string database);
 
         ~DbConnection();
 
@@ -107,6 +107,8 @@ namespace zhttp::zdb
         bool ping();
 
     private:
+        // 辅助连接并配置
+        void connect_helper();
 
         // 辅助递归结束函数
         void bind_params(sql::PreparedStatement *, int) {}
