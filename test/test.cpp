@@ -10,6 +10,10 @@
 
 #include "middleware/test_middleware_chain.h"
 #include "middleware/test_cors_middle.h"
+
+#include "db_pool/test_db_connection.h"
+#include "db_pool/test_db_pool.h"
+
 int main()
 {
     ::testing::InitGoogleTest();

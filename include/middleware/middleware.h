@@ -17,7 +17,10 @@ namespace zhttp::zmiddleware
         virtual void after(HttpResponse&response) = 0;
 
         // 设置下一个中间件
-        void set_next(std::shared_ptr<Middleware>&& next);
+        void set_next(std::shared_ptr<Middleware>&& next)
+        {
+            next_middleware_ = std::move(next);
+        }
     protected:
         std::shared_ptr<Middleware> next_middleware_; // 下一个中间件
     };
