@@ -8,6 +8,7 @@ namespace zhttp::zdb
     {
         try
         {
+            std::lock_guard<std::mutex> lockGuard(mutex_);
             // 获取数据库驱动
             sql::mysql::MySQL_Driver *driver = sql::mysql::get_mysql_driver_instance();
 
@@ -23,7 +24,6 @@ namespace zhttp::zdb
 
                 // 配置数据库连接
                 connection_->setClientOption("OPT_CONNECT_TIMEOUT", "10");
-                connection_->setClientOption("OPT_READ_TIMEOUT", "30");
                 connection_->setClientOption("multi_statements", "false");
 
                 // 设置字符集为 utf8mb4，确保支持 Emoji 等多字节字符
@@ -51,11 +51,16 @@ namespace zhttp::zdb
     {
         try
         {
+            std::lock_guard<std::mutex> lockGuard(mutex_);
             if (!connection_) return false;
 
             // 不使用 getStmt，直接创建新的语句
             std::unique_ptr<sql::Statement> stmt(connection_->createStatement());
             std::unique_ptr<sql::ResultSet> rs(stmt->executeQuery("SELECT 1"));
+            while (rs && rs->next())
+            {
+                // 获取结果
+            }
             return true;
         }
         catch (const sql::SQLException &e)
@@ -70,9 +75,22 @@ namespace zhttp::zdb
     {
         try
         {
+            std::lock_guard<std::mutex> lockGuard(mutex_);
+
             if (!connection_) return false;
             std::unique_ptr<sql::Statement> stmt(connection_->createStatement());
-            stmt->execute("SELECT 1");
+            bool ok = stmt->execute("SELECT 1");
+
+            // 如果它返回了 resultset，就手动去取：
+            if (ok)
+            {
+                std::unique_ptr<sql::ResultSet> rs (stmt->getResultSet());
+                while (rs && rs->next())
+                {
+                    // 获取结果
+                }
+            }
+
             return true;
         }
         catch (const sql::SQLException &)
@@ -86,6 +104,7 @@ namespace zhttp::zdb
     {
         try
         {
+            std::lock_guard<std::mutex> lockGuard(mutex_);
             if (connection_)
             {
                 connection_->reconnect();
@@ -107,9 +126,10 @@ namespace zhttp::zdb
     // 清理连接
     void DbConnection::cleanup()
     {
-        std::lock_guard<std::mutex> lock(mutex_);
         try
         {
+            std::lock_guard<std::mutex> lockGuard(mutex_);
+
             if (connection_)
             {
                 // 确保所有事务都已完成

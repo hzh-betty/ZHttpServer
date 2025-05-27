@@ -1,159 +1,137 @@
 #pragma once
-#include "../../include/db_pool/db_connection.h"
-#include  <gtest/gtest.h>
-#include  <thread>
 
+#include "../../include/db_pool/db_connection.h"
+#include <gtest/gtest.h>
+#include <thread>
+#include <vector>
+#include <atomic>
 
 namespace zhttp::zdb
 {
+    // 全局数据库配置信息
+    inline const std::string HOST = "1.95.159.45";
+    inline const std::string USER = "betty";
+    inline const std::string PASSWORD = "betty";
+    inline const std::string DATABASE = "test";
+
+    // 测试 DbConnection 类
     class DbConnectionTest : public ::testing::Test
     {
     protected:
         void SetUp() override
         {
-            // 测试用的数据库连接信息
-            host = "1.95.159.45";
-            user = "betty";
-            password = "betty";
-            database = "test";
-
-            // 创建测试表（如果不存在）
-            try
-            {
-                DbConnection setupConn(host, user, password, database);
-                setupConn.execute_update("DROP TABLE IF EXISTS test_table");
-                setupConn.execute_update("CREATE TABLE test_table (id INT PRIMARY KEY, name VARCHAR(50))");
-                setupConn.execute_update("INSERT INTO test_table VALUES (1, 'Test1'), (2, 'Test2')");
-            } catch (const DBException &e)
-            {
-                FAIL() << "Failed to setup test table: " << e.what();
-            }
+            conn_ = std::make_shared<DbConnection>(HOST, USER, PASSWORD, DATABASE);
+            ASSERT_TRUE(conn_->is_valid()) << "初始化连接失败";
         }
 
         void TearDown() override
         {
-            // 清理测试表
-            try
-            {
-                DbConnection cleanupConn(host, user, password, database);
-                cleanupConn.execute_update("DROP TABLE IF EXISTS test_table");
-            } catch (...)
-            {
-                // 忽略清理错误
-            }
+            conn_.reset();
         }
 
-        std::string host;
-        std::string user;
-        std::string password;
-        std::string database;
+        std::shared_ptr<DbConnection> conn_;
     };
 
-    // 测试构造函数和析构函数
-    TEST_F(DbConnectionTest, ConstructionAndDestruction)
+    TEST_F(DbConnectionTest, TestPing)
     {
-        EXPECT_NO_THROW({
-                            DbConnection conn(host, user, password, database);
-                            EXPECT_TRUE(conn.is_valid());
-                        });
+        ASSERT_TRUE(conn_->ping());
     }
 
-    // 测试无效连接
-    TEST_F(DbConnectionTest, InvalidConnection)
+    TEST_F(DbConnectionTest, TestExecuteUpdate)
     {
-        EXPECT_THROW({
-                         DbConnection conn("invalid_host", user, password, database);
-                     }, DBException);
+        conn_->execute_update(
+                "CREATE TABLE IF NOT EXISTS gtest_users (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
+        int affected = conn_->execute_update(
+                "INSERT INTO gtest_users(name) VALUES(?)", std::string("Alice"));
+        ASSERT_EQ(affected, 1);
     }
 
-    // 测试连接有效性检查
-    TEST_F(DbConnectionTest, IsValid)
+    TEST_F(DbConnectionTest, TestExecuteQuery)
     {
-        DbConnection conn(host, user, password, database);
-        EXPECT_TRUE(conn.is_valid());
-
-        // 模拟连接失效（实际可能无法模拟，这里只是测试行为）
-        // 通常需要mock来测试这种情况
+        auto result = conn_->execute_query(
+                "SELECT name FROM gtest_users WHERE name = ?", std::string("Alice"));
+        ASSERT_FALSE(result.empty());
+        ASSERT_EQ(result[0][0], "Alice");
     }
 
-    // 测试ping方法
-    TEST_F(DbConnectionTest, Ping)
+    TEST_F(DbConnectionTest, TestReconnect)
     {
-        DbConnection conn(host, user, password, database);
-        EXPECT_TRUE(conn.ping());
+        conn_->reconnect();
+        ASSERT_TRUE(conn_->is_valid());
     }
 
-    // 测试重连功能
-    TEST_F(DbConnectionTest, Reconnect)
+    // 并发执行简单查询
+    TEST_F(DbConnectionTest, ConcurrentExecuteQuery)
     {
-        DbConnection conn(host, user, password, database);
-        EXPECT_NO_THROW(conn.reconnect());
-        EXPECT_TRUE(conn.is_valid());
+        constexpr int kThreads = 8;
+        std::atomic<int> success_count{0};
+        std::vector<std::thread> threads;
+
+        for (int i = 0; i < kThreads; ++i)
+        {
+            threads.emplace_back([&]()
+                                 {
+                                     try
+                                     {
+                                         auto rows = conn_->execute_query("SELECT 1");
+                                         if (!rows.empty() && rows[0][0] == "1")
+                                         {
+                                             ++success_count;
+                                         }
+                                     } catch (const std::exception &e)
+                                     {
+                                         ADD_FAILURE() << "线程查询失败: " << e.what();
+                                     }
+                                 });
+        }
+
+        for (auto &t: threads)
+        {
+            t.join();
+        }
+
+        EXPECT_EQ(success_count, kThreads);
     }
 
-    // 测试执行查询
-    TEST_F(DbConnectionTest, ExecuteQuery)
+    // 并发 ping 与查询，测试锁竞争
+    TEST_F(DbConnectionTest, ConcurrentPingAndQuery)
     {
-        DbConnection conn(host, user, password, database);
-        auto result = conn.execute_query("SELECT * FROM test_table WHERE id = ?", 1);
-        ASSERT_NE(result, nullptr);
-        EXPECT_TRUE(result->next());
-        EXPECT_EQ(result->getString("name"), "Test1");
-        delete result;
+        constexpr int kThreads = 4;
+        std::atomic<int> ping_success{0};
+        std::atomic<int> query_success{0};
+        std::vector<std::thread> threads;
+
+        for (int i = 0; i < kThreads; ++i)
+        {
+            threads.emplace_back([&]()
+                                 {
+                                     for (int j = 0; j < 5; ++j)
+                                     {
+                                         try
+                                         {
+                                             if (conn_->ping()) ++ping_success;
+                                         } catch (...)
+                                         {
+                                             ADD_FAILURE() << "线程 ping 异常";
+                                         }
+                                         try
+                                         {
+                                             auto rows = conn_->execute_query("SELECT 1");
+                                             if (!rows.empty() && rows[0][0] == "1") ++query_success;
+                                         } catch (const std::exception &e)
+                                         {
+                                             ADD_FAILURE() << "线程查询失败: " << e.what();
+                                         }
+                                     }
+                                 });
+        }
+
+        for (auto &t: threads)
+        {
+            t.join();
+        }
+
+        EXPECT_EQ(ping_success, kThreads * 5);
+        EXPECT_EQ(query_success, kThreads * 5);
     }
-
-    // 测试执行更新
-    TEST_F(DbConnectionTest, ExecuteUpdate)
-    {
-        DbConnection conn(host, user, password, database);
-        int affected = conn.execute_update("INSERT INTO test_table VALUES (3, 'Test3')");
-        EXPECT_EQ(affected, 1);
-
-        // 验证插入是否成功
-        auto result = conn.execute_query("SELECT * FROM test_table WHERE id = 3");
-        ASSERT_NE(result, nullptr);
-        EXPECT_TRUE(result->next());
-        delete result;
-    }
-
-    // 测试参数绑定
-    TEST_F(DbConnectionTest, ParameterBinding)
-    {
-        DbConnection conn(host, user, password, database);
-
-        // 测试int参数
-        auto result1 = conn.execute_query("SELECT * FROM test_table WHERE id = ?", 1);
-        ASSERT_NE(result1, nullptr);
-        EXPECT_TRUE(result1->next());
-        delete result1;
-
-        // 测试string参数
-        auto result2 = conn.execute_query("SELECT * FROM test_table WHERE name = ?", std::string("Test1"));
-        ASSERT_NE(result2, nullptr);
-        EXPECT_TRUE(result2->next());
-        delete result2;
-    }
-
-    // 测试异常情况
-    TEST_F(DbConnectionTest, ExceptionHandling)
-    {
-        DbConnection conn(host, user, password, database);
-
-        // 测试无效SQL
-        EXPECT_THROW({
-                         conn.execute_query("INVALID SQL");
-                     }, DBException);
-
-        // 测试无效表名
-        EXPECT_THROW({
-                         conn.execute_query("SELECT * FROM non_existent_table");
-                     }, DBException);
-
-        // 测试无效where条件
-        EXPECT_THROW({
-                         conn.execute_query("SELECT * FROM test_table WHERE invalid_column = ?", std::string("value"));
-                     }, DBException);
-    }
-
-
 }

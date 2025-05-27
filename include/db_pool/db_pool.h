@@ -43,7 +43,7 @@ namespace zhttp::zdb
         std::string password_;
         std::string database_;
         std::queue<std::shared_ptr<DbConnection>> connections_;
-        std::mutex mutex_;
+        mutable std::mutex mutex_;
         std::condition_variable cv_;
         bool initialized_ = false;
         std::thread check_thread_; // 添加检查线程

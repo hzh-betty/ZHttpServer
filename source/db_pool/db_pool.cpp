@@ -38,6 +38,7 @@ namespace zhttp::zdb
         {
             connections_.pop();
         }
+        initialized_ = false;
         LOG_INFO << "Database connection pool destroyed";
     }
 
