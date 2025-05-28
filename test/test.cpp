@@ -14,6 +14,9 @@
 #include "db_pool/test_db_connection.h"
 #include "db_pool/test_db_pool.h"
 
+#include "ssl/test_ssl_config.h"
+#include "ssl/test_ssl_context.h"
+#include "ssl/test_ssl_connection.h"
 int main()
 {
     ::testing::InitGoogleTest();

@@ -23,6 +23,8 @@ find_library(MYSQLCPPCONN_LIB
         REQUIRED
 )
 
+# OpenSSL 查找
+find_package(OpenSSL REQUIRED)
 
 # 检索所有头文件目录路径
 file(GLOB_RECURSE ALL_HEADER_FILES
@@ -65,6 +67,11 @@ file(GLOB_RECURSE MIDDLEWARE_SRC
         ${PROJECT_SOURCE_DIR}/source/middleware/*.cpp
 )
 
+# 添加ssl相关的源文件
+file(GLOB_RECURSE SSL_SRC
+        ${PROJECT_SOURCE_DIR}/source/ssl/*.cpp
+)
+
 # 所有项目相关源文件
 file(GLOB ALL_SRC
         ${HTTP_SRC}
@@ -72,6 +79,7 @@ file(GLOB ALL_SRC
         ${SESSION_SRC}
         ${MIDDLEWARE_SRC}
         ${DB_POOL_SRC}
+        ${SSL_SRC}
 )
 
 # 主程序可执行文件
@@ -94,6 +102,8 @@ target_link_libraries(unit_tests
         ${MYSQL_LIB}
         ${MYSQLCPPCONN_LIB}
         pthread
+        ssl
+        crypto
 )
 
 enable_testing()
