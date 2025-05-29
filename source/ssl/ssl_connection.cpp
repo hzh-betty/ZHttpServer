@@ -2,6 +2,8 @@
 #include <muduo/base/Logging.h>
 #include <openssl/err.h>
 
+#include <utility>
+
 namespace zhttp::zssl
 {
     // 自定义 BIO 方法
@@ -14,8 +16,9 @@ namespace zhttp::zssl
         return method;
     }
 
-    SslConnection::SslConnection(const muduo::net::TcpConnectionPtr &conn, SslContext *ctx)
-            : ssl_(nullptr), context_(ctx), connection_(conn), state_(SslState::HANDSHAKE), read_bio_(nullptr),
+    SslConnection::SslConnection(muduo::net::TcpConnectionPtr conn, SslContext *ctx)
+            : ssl_(nullptr), context_(ctx), connection_(std::move(conn)), state_(SslState::HANDSHAKE),
+              read_bio_(nullptr),
               write_bio_(nullptr), message_callback_(nullptr)
     {
         // 创建 SSL 对象
@@ -46,10 +49,15 @@ namespace zhttp::zssl
         SSL_set_mode(ssl_, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
         SSL_set_mode(ssl_, SSL_MODE_ENABLE_PARTIAL_WRITE);
 
-        // 设置连接回调
+        // 收到数据时，调用此回调
         connection_->setMessageCallback(
-                std::bind(&SslConnection::on_read, this, std::placeholders::_1,
-                          std::placeholders::_2, std::placeholders::_3));
+                [this](auto &&PH1, auto &&PH2, auto &&PH3)
+                {
+                    on_read(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2),
+                            std::forward<decltype(PH3)>(PH3));
+                });
+
+        LOG_INFO << "SSL connection created";
     }
 
     SslConnection::~SslConnection()
@@ -76,7 +84,7 @@ namespace zhttp::zssl
             return;
         }
 
-        int written = SSL_write(ssl_, data, len);
+        int written = SSL_write(ssl_, data, (int) len);
         if (written <= 0)
         {
             int err = SSL_get_error(ssl_, written);
@@ -98,41 +106,129 @@ namespace zhttp::zssl
         }
     }
 
-    void SslConnection::on_read(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer * buf,
+    void SslConnection::on_read(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer *buf,
                                 muduo::Timestamp time)
     {
+//        if (state_ == SslState::HANDSHAKE)
+//        {
+//            LOG_INFO << "Received data from client ";
+//
+//            // 将数据写入 BIO
+//            BIO_write(read_bio_, buf->peek(), (int) buf->readableBytes());
+//            buf->retrieve(buf->readableBytes());
+//            handle_handshake();
+//            return;
+//        }
+//        else if (state_ == SslState::ESTABLISHED)
+//        {
+//            // 解密数据
+//            char decrypted_data[4096];
+//            LOG_INFO << "int ret = SSL_read(ssl_, decrypted_data, sizeof(decrypted_data)); ";
+//            int ret = SSL_read(ssl_, decrypted_data, sizeof(decrypted_data));
+//            if (ret > 0)
+//            {
+//                // 创建新的 Buffer 存储解密后的数据
+//                muduo::net::Buffer decrypted_buffer;
+//                decrypted_buffer.append(decrypted_data, ret);
+//
+//                // 调用上层回调处理解密后的数据
+//                if (message_callback_)
+//                {
+//                    message_callback_(conn, &decrypted_buffer, time);
+//                }
+//                LOG_INFO << "on_read has been called";
+//            }
+//        }
+        // 1. 写入所有接收到的加密数据到读 BIO
+        LOG_INFO << "Received data from client ";
+        int n = buf->readableBytes();
+        if (n > 0)
+        {
+            BIO_write(read_bio_, buf->peek(), n);
+            buf->retrieve(n);
+        }
+
+        // 2. 握手阶段
         if (state_ == SslState::HANDSHAKE)
         {
-            // 将数据写入 BIO
-            BIO_write(read_bio_, buf->peek(), buf->readableBytes());
-            buf->retrieve(buf->readableBytes());
             handle_handshake();
             return;
         }
-        else if (state_ == SslState::ESTABLISHED)
+
+        if(state_ != SslState::ESTABLISHED)
         {
-            // 解密数据
-            char decrypted_data[4096];
-            int ret = SSL_read(ssl_, decrypted_data, sizeof(decrypted_data));
+            LOG_ERROR << "SSL handshake failed";
+            return;
+        }
+        // 3. 应用数据阶段：循环读取明文
+        char plain[4096];
+        while (true)
+        {
+            int ret = SSL_read(ssl_, plain, sizeof(plain));
             if (ret > 0)
             {
-                // 创建新的 Buffer 存储解密后的数据
-                muduo::net::Buffer decrypted_buffer;
-                decrypted_buffer.append(decrypted_data, ret);
-
-                // 调用上层回调处理解密后的数据
+                muduo::net::Buffer decrypted;
+                decrypted.append(plain, ret);
                 if (message_callback_)
                 {
-                    message_callback_(conn, &decrypted_buffer, time);
+                    message_callback_(conn, &decrypted, time);
                 }
+                continue;
             }
+            int err = SSL_get_error(ssl_, ret);
+            if (err == SSL_ERROR_WANT_READ)
+            {
+                // 明文读完，等待新的密文
+                break;
+            }
+            // 其他错误
+            handle_error(get_last_error(ret));
+            break;
         }
     }
 
     void SslConnection::handle_handshake()
     {
+//        int ret = SSL_do_handshake(ssl_);
+//
+//        if (ret == 1)
+//        {
+//            state_ = SslState::ESTABLISHED;
+//            LOG_INFO << "SSL handshake completed successfully";
+//            LOG_INFO << "Using cipher: " << SSL_get_cipher(ssl_);
+//            LOG_INFO << "Protocol version: " << SSL_get_version(ssl_);
+//
+//            // 握手完成后，确保设置正确回调
+//            if (!message_callback_)
+//            {
+//                LOG_WARN << "No message callback set after SSL handshake";
+//            }
+//
+//            return;
+//        }
+//
+//        int err = SSL_get_error(ssl_, ret);
+//        switch (err)
+//        {
+//            case SSL_ERROR_WANT_READ:
+//            case SSL_ERROR_WANT_WRITE:
+//                // 正常握手过程，需要继续
+//                drain_write_bio();
+//                break;
+//
+//            default:
+//            {
+//                // 获取详细的错误信息
+//                char err_buf[256];
+//                unsigned long err_code = ERR_get_error();
+//                ERR_error_string_n(err_code, err_buf, sizeof(err_buf));
+//                LOG_ERROR << "SSL handshake failed: " << err_buf;
+//                connection_->shutdown();  // 关闭连接
+//                break;
+//            }
+//        }
+//        LOG_INFO << "SSL handshake in progress " << err;
         int ret = SSL_do_handshake(ssl_);
-
         if (ret == 1)
         {
             state_ = SslState::ESTABLISHED;
@@ -140,32 +236,40 @@ namespace zhttp::zssl
             LOG_INFO << "Using cipher: " << SSL_get_cipher(ssl_);
             LOG_INFO << "Protocol version: " << SSL_get_version(ssl_);
 
-            // 握手完成后，确保设置正确回调
-            if (!message_callback_)
-            {
+            // 握手完成后，确保设置了正确的回调
+            if (!message_callback_) {
                 LOG_WARN << "No message callback set after SSL handshake";
             }
+            muduo::Timestamp time;
+            on_read(connection_, &decrypted_buffer_, time);
             return;
         }
 
         int err = SSL_get_error(ssl_, ret);
-        switch (err)
+        LOG_INFO << "SSL handshake in progress " << err;
+        if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ)
         {
-            case SSL_ERROR_WANT_READ:
-            case SSL_ERROR_WANT_WRITE:
-                // 正常握手过程，需要继续
-                break;
+            // 还有握手数据要发
+            drain_write_bio();
+            return;
+        }
 
-            default:
-            {
-                // 获取详细的错误信息
-                char err_buf[256];
-                unsigned long err_code = ERR_get_error();
-                ERR_error_string_n(err_code, err_buf, sizeof(err_buf));
-                LOG_ERROR << "SSL handshake failed: " << err_buf;
-                connection_->shutdown();  // 关闭连接
-                break;
-            }
+        // 握手失败
+        unsigned long ecode = ERR_get_error();
+        char err_buf[256];
+        ERR_error_string_n(ecode, err_buf, sizeof(err_buf));
+        LOG_ERROR << "SSL handshake failed: " << err_buf;
+        connection_->shutdown();
+    }
+
+    void SslConnection::drain_write_bio()
+    {
+        char buf[4096];
+        while (int pend = BIO_pending(write_bio_))
+        {
+            int n = BIO_read(write_bio_, buf, std::min(pend, (int) sizeof(buf)));
+            if (n > 0) connection_->send(buf, n);
+            else break;
         }
     }
 
@@ -222,7 +326,7 @@ namespace zhttp::zssl
 
     int SslConnection::bio_write(BIO *bio, const char *data, int len)
     {
-        SslConnection *conn = static_cast<SslConnection *>(BIO_get_data(bio));
+        auto *conn = static_cast<SslConnection *>(BIO_get_data(bio));
         if (!conn) return -1;
 
         conn->connection_->send(data, len);
@@ -231,7 +335,7 @@ namespace zhttp::zssl
 
     int SslConnection::bio_read(BIO *bio, char *data, int len)
     {
-        SslConnection *conn = static_cast<SslConnection *>(BIO_get_data(bio));
+        auto *conn = static_cast<SslConnection *>(BIO_get_data(bio));
         if (!conn) return -1;
 
         size_t readable = conn->read_buffer_.readableBytes();
@@ -257,8 +361,13 @@ namespace zhttp::zssl
         }
     }
 
-    void SslConnection::set_message_callback(const MessageCallback& cb)
+    void SslConnection::set_message_callback(const MessageCallback &cb)
     {
         message_callback_ = cb;
+    }
+
+    bool SslConnection::is_handshake_completed() const
+    {
+        return state_ == SslState::ESTABLISHED;
     }
 } // namespace zhttp::zssl

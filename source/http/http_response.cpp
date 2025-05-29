@@ -67,6 +67,7 @@ namespace zhttp
     void HttpResponse::set_body(const std::string_view &body)
     {
         body_ = std::string(body.begin(), body.end());
+        set_content_length(body_.size());
     }
 
     const std::string &HttpResponse::get_body() const

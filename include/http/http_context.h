@@ -30,10 +30,12 @@ namespace zhttp
         // 解析是否完成
         bool is_parse_complete() const;
 
-        const HttpRequest &request() const
-        {
-            return request_;
-        }
+        // 获取HttpRequest对象
+        const HttpRequest &request() const;
+        HttpRequest &request();
+
+        void reset();
+
     private:
         // 解析请求行
         bool parse_request_line(const std::string_view &line, const muduo::Timestamp &receive_time);

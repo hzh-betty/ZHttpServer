@@ -14,7 +14,7 @@ namespace zhttp::zssl
     class SslConnection
     {
     public:
-        SslConnection(const muduo::net::TcpConnectionPtr &conn, SslContext *ctx);
+        SslConnection(muduo::net::TcpConnectionPtr conn, SslContext *ctx);
 
         ~SslConnection();
 
@@ -28,10 +28,10 @@ namespace zhttp::zssl
         void on_read(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer *buf, muduo::Timestamp time);
 
         // 判断握手是否完成
-        bool is_handshake_completed() const;
+        [[nodiscard]] bool is_handshake_completed() const;
 
         // 获取解密缓冲区
-        muduo::net::Buffer *getDecryptedBuffer() { return &decrypted_buffer_; }
+        muduo::net::Buffer *get_decrypted_buffer() { return &decrypted_buffer_; }
 
         // SSL BIO 操作回调
         static int bio_write(BIO *bio, const char *data, int len);
@@ -58,6 +58,8 @@ namespace zhttp::zssl
         // 错误处理
         void handle_error(SslError error);
 
+        // 读取write_bio数据
+        void drain_write_bio();
     private:
         SSL *ssl_; // ssl连接
         SslContext *context_; // ssl上下文

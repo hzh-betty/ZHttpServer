@@ -166,4 +166,17 @@ namespace zhttp
         return content_length_;
     }
 
+    void HttpRequest::swap(HttpRequest &other)
+    {
+        std::swap(method_, other.method_);
+        std::swap(path_, other.path_);
+        std::swap(version_, other.version_);
+        std::swap(path_parameters_, other.path_parameters_);
+        std::swap(query_parameters_, other.query_parameters_);
+        std::swap(receive_time_, other.receive_time_);
+        std::swap(headers_, other.headers_);
+        std::swap(content_, other.content_);
+        std::swap(content_length_, other.content_length_);
+    }
+
 }// namespace zhttp

@@ -90,6 +90,8 @@ target_link_libraries(my_server
         ${MYSQL_LIB}
         ${MYSQLCPPCONN_LIB}
         pthread
+        ssl
+        crypto
 )
 
 # 单元测试可执行文件

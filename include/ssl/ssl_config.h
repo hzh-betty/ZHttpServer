@@ -2,6 +2,7 @@
 
 #include "ssl_types.h"
 #include <string>
+#include <cstdint>
 
 namespace zhttp::zssl
 {
@@ -35,9 +36,9 @@ namespace zhttp::zssl
         [[nodiscard]] SslVersion get_version() const;
         [[nodiscard]] std::string get_cipher_list() const;
         [[nodiscard]] bool get_verify_peer() const;
-        [[nodiscard]] u_int32_t get_verify_depth() const;
-        [[nodiscard]] u_int32_t get_session_timeout() const;
-        [[nodiscard]] u_int64_t get_session_cache_size() const;
+        [[nodiscard]] uint32_t get_verify_depth() const;
+        [[nodiscard]] uint32_t get_session_timeout() const;
+        [[nodiscard]] uint64_t get_session_cache_size() const;
 
     private:
         SslConfig();
@@ -49,9 +50,9 @@ namespace zhttp::zssl
         SslVersion version_;
         std::string cipher_list_{}; // 密码列表
         bool verify_peer_; // 是否验证对端
-        u_int32_t verify_depth_; // 验证深度
-        u_int32_t session_timeout_; // 会话超时时间
-        u_int64_t session_cache_size_; // 会话缓存大小
+        uint32_t verify_depth_; // 验证深度
+        uint32_t session_timeout_; // 会话超时时间
+        uint64_t session_cache_size_; // 会话缓存大小
     };
 } // namespace zhttp::zssl
 

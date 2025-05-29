@@ -165,4 +165,22 @@ namespace zhttp
         return state_ == HttpRequestParseState::ExpectComplete;
     }
 
+    const HttpRequest &HttpContext::request()const
+    {
+        return request_;
+    }
+
+    HttpRequest &HttpContext::request()
+    {
+        return request_;
+    }
+
+    void HttpContext::reset()
+    {
+        state_ = HttpRequestParseState::ExpectRequestLine;
+        HttpRequest other;
+        request_.swap(other);
+    }
+
+
 } // namespace zhttp
