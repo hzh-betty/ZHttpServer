@@ -27,6 +27,10 @@ namespace zhttp
     void HttpServer::start()
     {
         LOG_INFO << "HttpServer[" << server_.name() << "] starts listening on " << server_.ipPort();
+        if(is_ssl_)
+        {
+            set_ssl_context();
+        }
         server_.start();
         main_loop_.loop();
     }
@@ -77,25 +81,18 @@ namespace zhttp
         middleware_chain_.add_middleware(middleware);
     }
 
-    // 启动SSL
-    void HttpServer::enable_ssl(bool enable)
-    {
-        is_ssl_ = enable;
-    }
-
     // 初始化
     void HttpServer::init()
     {
-        server_.setConnectionCallback([this](auto &&PH1)
-        { on_connection(std::forward<decltype(PH1)>(PH1)); });
+        server_.setConnectionCallback([this](auto &&PH1) { on_connection(std::forward<decltype(PH1)>(PH1)); });
         server_.setMessageCallback([this](auto &&PH1,
                                           auto &&PH2, auto &&PH3)
                                    {
                                        on_message(std::forward<decltype(PH1)>(PH1),
                                                   std::forward<decltype(PH2)>(PH2),
-                                                          std::forward<decltype(PH3)>(PH3));
+                                                  std::forward<decltype(PH3)>(PH3));
                                    });
-        LOG_INFO  << "HttpServer init";
+        LOG_INFO << "HttpServer init successfully";
     }
 
     // 设置SSL上下文
@@ -123,13 +120,18 @@ namespace zhttp
                 // 创建SSL连接
                 auto ssl_connection = std::make_unique<zssl::SslConnection>(conn,
                                                                             ssl_context_.get());
-                ssl_connection->set_message_callback([this](auto && PH1,
-                        auto && PH2, auto && PH3)
-                        { on_message(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2), std::forward<decltype(PH3)>(PH3)); });
+                ssl_connection->set_message_callback([this](auto &&PH1,
+                                                            auto &&PH2, auto &&PH3)
+                                                     {
+                                                         on_message(std::forward<decltype(PH1)>(PH1),
+                                                                    std::forward<decltype(PH2)>(PH2),
+                                                                    std::forward<decltype(PH3)>(PH3));
+                                                     });
                 ssl_connections_[conn] = std::move(ssl_connection);
                 ssl_connections_[conn]->handshake();
             }
             conn->setContext(HttpContext()); // 为每个链接设置HttpContext
+            LOG_INFO << "new connection accepted";
         }
         else
         {
@@ -137,6 +139,10 @@ namespace zhttp
             {
                 ssl_connections_.erase(conn); // 删除SSL连接
                 LOG_INFO << "ssl connection closed";
+            }
+            else
+            {
+                LOG_INFO << "connection closed";
             }
         }
     }
@@ -147,7 +153,6 @@ namespace zhttp
     {
         if (is_ssl_)
         {
-            LOG_INFO << "on_message: ssl connection receive data";
             // 1. 查找SSL连接
             auto iter = ssl_connections_.find(conn);
 
@@ -157,42 +162,37 @@ namespace zhttp
                 return;
             }
 
+            // 2. 处理SSL连接
             if (iter != ssl_connections_.end())
             {
-                // 2. 处理SSL连接
-                LOG_INFO  << "iter != ssl_connections_.end()";
-                iter->second->on_read(conn, buf, receive_time);
-
                 // 3. 如果握手未完成
                 if (!iter->second->is_handshake_completed())
                 {
                     LOG_INFO << "ssl handshake not completed";
                     return;
                 }
-
-//                // 4. 获取解密后的数据
-//                muduo::net::Buffer *decrypted_buffer = iter->second->get_decrypted_buffer();
-//                if (decrypted_buffer->readableBytes() == 0) return;
-//
-//                // 5. 使用解密后的数据进行处理
-//                buf = decrypted_buffer;
             }
-
         }
+
         auto *context = boost::any_cast<HttpContext>(conn->getMutableContext());
         if (!context->parse_request(buf, receive_time))
         {
             // 解析失败
-            conn->send("HTTP/1.1 400 Bad Request\r\n\r\n");
+            LOG_ERROR << "parse request failed";
+            std::string response = "HTTP/1.1 400 Bad Request\r\n\r\n";
+            muduo::net::Buffer output;
+            output.append(response);
+            send(conn, output);
             conn->shutdown();
             return;
         }
+
         if (context->is_parse_complete())
         {
             on_request(conn, context->request());
             context->reset();
+            LOG_INFO << "HttpServer on_message successfully";
         }
-        LOG_INFO  << "HttpServer on_message";
     }
 
     // 得到一个完整的HTTP请求后的回调处理
@@ -212,15 +212,15 @@ namespace zhttp
         // 响应数据
         muduo::net::Buffer output;
         response.append_buffer(&output);
-        LOG_INFO << "response: " << output.toStringPiece();
+        LOG_INFO << "response: \n" << output.toStringPiece();
 
-        conn->send(&output);
+        send(conn, output);
 
         if (!response.is_keep_alive())
         {
             conn->shutdown();
         }
-        LOG_INFO  << "HttpServer on_request";
+        LOG_INFO << "HttpServer handle HTTP request successfully";
     }
 
     // 中间件-路由-中间件处理
@@ -229,7 +229,6 @@ namespace zhttp
     {
         try
         {
-
             // 处理请求前中间件
             HttpRequest req = request;
             middleware_chain_.process_before(req);
@@ -244,6 +243,8 @@ namespace zhttp
 
             // 处理请求后中间件
             middleware_chain_.process_after(*response);
+
+            LOG_INFO << "HttpServer middleware-route-middleware successfully";
         }
         catch (const HttpResponse &req)
         {
@@ -258,8 +259,20 @@ namespace zhttp
             response->set_body(e.what());
         }
         response->set_version(request.get_version()); // 设置响应版本号
+    }
 
-        LOG_INFO  << "HttpServer handle_request";
+    // 向客户端发送数据
+    void HttpServer::send(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer &output)
+    {
+        if (is_ssl_)
+        {
+            ssl_connections_[conn]->send(output.toStringPiece().data(), output.readableBytes());
+        }
+        else
+        {
+            conn->send(&output);
+        }
+        LOG_INFO << "HttpServer send successfully";
     }
 
 } // namespace zhttp

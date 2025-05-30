@@ -48,9 +48,8 @@ namespace zhttp::zssl
         void handle_handshake();
 
         // 加密解密处理
-        void on_encrypted(const char *data, size_t len);
-
-        void on_decrypted(const char *data, size_t len);
+        void on_encrypted(const void *data, size_t len);
+        void on_decrypted();
 
         // 获取错误信息
         SslError get_last_error(int ret);
@@ -60,6 +59,7 @@ namespace zhttp::zssl
 
         // 读取write_bio数据
         void drain_write_bio();
+
     private:
         SSL *ssl_; // ssl连接
         SslContext *context_; // ssl上下文
@@ -71,5 +71,6 @@ namespace zhttp::zssl
         muduo::net::Buffer write_buffer_; // 写入缓冲区
         muduo::net::Buffer decrypted_buffer_; //  解密缓冲区
         MessageCallback message_callback_; // 消息回调函数
+        muduo::Timestamp receive_time_; // 接收时间
     };
 } // namespace zhttp::zssl

@@ -40,7 +40,7 @@ namespace zhttp
         void start();
 
         // 获取主线程loop
-        muduo::net::EventLoop *get_main_loop() ;
+        muduo::net::EventLoop *get_main_loop();
 
         // 注册静态路由回调
         void Get(const std::string &path, const HttpCallback &cb);
@@ -57,13 +57,11 @@ namespace zhttp
         void add_regex_route(HttpRequest::Method method, const std::string &path, zrouter::Router::HandlerPtr handler);
 
         // 添加中间件
-        void add_middleware(const std::shared_ptr<zmiddleware::Middleware>& middleware);
-
-        // 启动SSL
-        void enable_ssl(bool enable);
+        void add_middleware(const std::shared_ptr<zmiddleware::Middleware> &middleware);
 
         // 添加SSL上下文
         void set_ssl_context();
+
     private:
         // 初始化
         void init();
@@ -82,7 +80,10 @@ namespace zhttp
 
         // 中间件-路由-中间件处理
         void handle_request(const zhttp::HttpRequest &request,
-                zhttp::HttpResponse *response);
+                            zhttp::HttpResponse *response);
+
+        // 向客户端响应数据
+        void send(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer &output);
 
     private:
         muduo::net::InetAddress listen_addr_; // 监听地址

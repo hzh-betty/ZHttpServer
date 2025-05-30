@@ -1,7 +1,7 @@
 #include <muduo/base/Logging.h>
 #include "include/http/http_server.h"
 #include "include/ssl/ssl_config.h"
-int main(int argc, char* argv[])
+int main()
 {
     // 设置日志级别
     muduo::Logger::setLogLevel(muduo::Logger::INFO);
@@ -42,7 +42,6 @@ int main(int argc, char* argv[])
             LOG_FATAL << "Cannot read private key file: " << keyFile;
             return 1;
         }
-        serverPtr->set_ssl_context();
 
         // 设置线程数
         serverPtr->set_thread_num(4);
