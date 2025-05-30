@@ -8,90 +8,94 @@ namespace zhttp
                            const std::string &name,
                            bool use_ssl,
                            muduo::net::TcpServer::Option option)
-            : listen_addr_(port), server_(&main_loop_, listen_addr_, name, option), is_ssl_(use_ssl), callback_(
-            [this](auto &&PH1, auto &&PH2)
-            {
-                handle_request(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
-            })
+            : is_ssl_(use_ssl)
     {
-        init();
+        init(port, name, option);
     }
 
     // 启动线程数
     void HttpServer::set_thread_num(uint32_t num)
     {
-        server_.setThreadNum((int) num);
+        server_->setThreadNum((int) num);
     }
 
     // 启动
     void HttpServer::start()
     {
-        LOG_INFO << "HttpServer[" << server_.name() << "] starts listening on " << server_.ipPort();
-        if(is_ssl_)
+        LOG_INFO << "HttpServer[" << server_->name() << "] starts listening on " << server_->ipPort();
+        if (is_ssl_)
         {
             set_ssl_context();
         }
-        server_.start();
-        main_loop_.loop();
-    }
-
-    // 获取主线程loop
-    muduo::net::EventLoop *HttpServer::get_main_loop()
-    {
-        return &main_loop_;
+        server_->start();
+        main_loop_->loop();
     }
 
     // 注册静态路由回调
     void HttpServer::Get(const std::string &path, const HttpCallback &cb)
     {
-        router_.register_callback(path, HttpRequest::Method::GET, cb);
+        router_->register_callback(path, HttpRequest::Method::GET, cb);
     }
 
     void HttpServer::Get(const std::string &path, zrouter::Router::HandlerPtr handler)
     {
-        router_.register_handler(path, HttpRequest::Method::GET, std::move(handler));
+        router_->register_handler(path, HttpRequest::Method::GET, std::move(handler));
     }
 
     void HttpServer::Post(const std::string &path, const HttpCallback &cb)
     {
-        router_.register_callback(path, HttpRequest::Method::POST, cb);
+        router_->register_callback(path, HttpRequest::Method::POST, cb);
     }
 
     void HttpServer::Post(const std::string &path, zrouter::Router::HandlerPtr handler)
     {
-        router_.register_handler(path, HttpRequest::Method::POST, std::move(handler));
+        router_->register_handler(path, HttpRequest::Method::POST, std::move(handler));
     }
 
     // 注册动态路由回调
     void HttpServer::add_regex_route(HttpRequest::Method method, const std::string &path, const HttpCallback &cb)
     {
-        router_.register_regex_callback(path, method, cb);
+        router_->register_regex_callback(path, method, cb);
     }
 
 
     void HttpServer::add_regex_route(HttpRequest::Method method, const std::string &path,
                                      zrouter::Router::HandlerPtr handler)
     {
-        router_.register_regex_handler(path, method, std::move(handler));
+        router_->register_regex_handler(path, method, std::move(handler));
     }
 
     // 添加中间件
-    void HttpServer::add_middleware(const std::shared_ptr<zmiddleware::Middleware> &middleware)
+    void HttpServer::add_middleware(std::shared_ptr<zmiddleware::Middleware> middleware)
     {
-        middleware_chain_.add_middleware(middleware);
+        middleware_chain_->add_middleware(std::move(middleware));
     }
 
     // 初始化
-    void HttpServer::init()
+    void HttpServer::init(uint16_t port, const std::string &name, muduo::net::TcpServer::Option option)
     {
-        server_.setConnectionCallback([this](auto &&PH1) { on_connection(std::forward<decltype(PH1)>(PH1)); });
-        server_.setMessageCallback([this](auto &&PH1,
-                                          auto &&PH2, auto &&PH3)
-                                   {
-                                       on_message(std::forward<decltype(PH1)>(PH1),
-                                                  std::forward<decltype(PH2)>(PH2),
-                                                  std::forward<decltype(PH3)>(PH3));
-                                   });
+        // 初始化服务端元素
+        listen_addr_ = std::make_unique<muduo::net::InetAddress>(port);
+        main_loop_ = std::make_unique<muduo::net::EventLoop>();
+        server_ = std::make_unique<muduo::net::TcpServer>
+                (main_loop_.get(), *listen_addr_, name, option);
+        router_ = std::make_unique<zrouter::Router>();
+        middleware_chain_ = std::make_unique<zmiddleware::MiddlewareChain>();
+        callback_ = [this](auto &&PH1, auto &&PH2)
+        {
+            handle_request(std::forward<decltype(PH1)>(PH1),
+                           std::forward<decltype(PH2)>(PH2));
+        };
+
+        // 设置链接与数据回调
+        server_->setConnectionCallback([this](auto &&PH1) { on_connection(std::forward<decltype(PH1)>(PH1)); });
+        server_->setMessageCallback([this](auto &&PH1,
+                                           auto &&PH2, auto &&PH3)
+                                    {
+                                        on_message(std::forward<decltype(PH1)>(PH1),
+                                                   std::forward<decltype(PH2)>(PH2),
+                                                   std::forward<decltype(PH3)>(PH3));
+                                    });
         LOG_INFO << "HttpServer init successfully";
     }
 
@@ -113,6 +117,7 @@ namespace zhttp
     // 新链接建立回调
     void HttpServer::on_connection(const muduo::net::TcpConnectionPtr &conn)
     {
+        LOG_INFO << "new connection accepted";
         if (conn->connected())
         {
             if (is_ssl_)
@@ -231,10 +236,10 @@ namespace zhttp
         {
             // 处理请求前中间件
             HttpRequest req = request;
-            middleware_chain_.process_before(req);
+            middleware_chain_->process_before(req);
 
             // 路由处理
-            if (!router_.route(req, response))
+            if (!router_->route(req, response))
             {
                 response->set_status_code(zhttp::HttpResponse::StatusCode::NotFound);
                 response->set_status_message("Not Found");
@@ -242,7 +247,7 @@ namespace zhttp
             }
 
             // 处理请求后中间件
-            middleware_chain_.process_after(*response);
+            middleware_chain_->process_after(*response);
 
             LOG_INFO << "HttpServer middleware-route-middleware successfully";
         }

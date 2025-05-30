@@ -1,122 +1,140 @@
-#pragma  once
+#pragma once
 
 #include "../../include/middleware/cors/cors_middle.h"
 #include <gtest/gtest.h>
 
 namespace zhttp::zmiddleware
 {
-    // 创建默认 GET 请求
-    HttpRequest create_get_request(const std::string &origin = "")
+    // 模拟中间件调用后抛出 HttpResponse 的工具函数
+    bool handle_preflight(CorsMiddleware &middleware, HttpRequest &request, HttpResponse &out_response)
     {
-        HttpRequest request;
-        request.set_method(HttpRequest::Method::GET);
-        if (!origin.empty())
+        try
         {
-            request.set_header("Origin", origin);
+            middleware.before(request);
+        } catch (const HttpResponse &resp)
+        {
+            out_response = resp;
+            return true;
         }
-        return request;
+        return false;
     }
 
-    // 创建默认响应
-    HttpResponse create_ok_response()
+    class CorsMiddlewareTest : public ::testing::Test
     {
-        HttpResponse response;
-        response.set_status_code(HttpResponse::StatusCode::OK);
-        return response;
-    }
+    protected:
+        CorsConfig config;
+        CorsMiddleware *middleware{};
 
-    // 为测试 CorsMiddleware 提供访问 config_ 的方法
-    class TestableCorsMiddleware : public CorsMiddleware
-    {
-    public:
-        using CorsMiddleware::CorsMiddleware;
+        void SetUp() override
+        {
+            config.allow_origins_ = {"https://example.com"};
+            config.allow_methods_ = {"GET", "POST"};
+            config.allow_headers_ = {"Content-Type", "Authorization"};
+            config.server_origin_ = "https://api.server.com";
+            config.allow_credentials = true;
+            config.max_age = 600;
 
-        const CorsConfig &get_cors_config() const { return config_; }
+            middleware = new CorsMiddleware(config);
+        }
+
+        void TearDown() override
+        {
+            delete middleware;
+        }
+
+        static HttpRequest create_preflight_request(const std::string &origin)
+        {
+            HttpRequest req;
+            req.set_method(HttpRequest::Method::OPTIONS);
+            req.set_version("HTTP/1.1");
+            req.set_header("Origin", origin);
+            req.set_header("Access-Control-Request-Method", "POST");
+            req.set_header("Access-Control-Request-Headers", "Authorization");
+            return req;
+        }
+
+        static HttpRequest create_normal_request(const std::string &origin)
+        {
+            HttpRequest req;
+            req.set_method(HttpRequest::Method::GET);
+            req.set_version("HTTP/1.1");
+            req.set_header("Origin", origin);
+            return req;
+        }
     };
 
-
-    // 1. 构造函数与默认配置验证
-    TEST(CorsMiddlewareTest, DefaultConstructorSetsDefaultConfig)
+    // 测试：非跨域请求不应该添加 CORS 头
+    TEST_F(CorsMiddlewareTest, SameOriginShouldNotModifyResponse)
     {
-        TestableCorsMiddleware middleware;
+        HttpRequest req = create_normal_request(config.server_origin_);
+        HttpResponse res;
 
-        const CorsConfig &config = middleware.get_cors_config();
-        EXPECT_EQ(config.allow_origins_, std::vector<std::string>{"*"});
-        EXPECT_EQ(config.allow_methods_, std::vector<std::string>({"GET", "POST", "PUT", "DELETE", "OPTIONS"}));
-        EXPECT_EQ(config.allow_headers_, std::vector<std::string>({"Content-Type", "Authorization"}));
+        middleware->before(req);
+        middleware->after(res);
+
+        EXPECT_TRUE(res.get_header("Access-Control-Allow-Origin").empty());
     }
 
-    // 2. before 方法处理 OPTIONS 请求并抛出响应
-    TEST(CorsMiddlewareTest, BeforeHandlesOptionsRequest)
+    // 测试：合法跨域预检请求应正确响应并添加CORS头
+    TEST_F(CorsMiddlewareTest, PreflightRequestShouldReturnProperHeaders)
     {
-        TestableCorsMiddleware middleware;
+        HttpRequest req = create_preflight_request("https://example.com");
+        HttpResponse res;
 
-        HttpRequest request = create_get_request("http://example.com");
-        request.set_method(HttpRequest::Method::OPTIONS);
+        bool caught = handle_preflight(*middleware, req, res);
 
-        EXPECT_THROW(middleware.before(request), HttpResponse);
+        EXPECT_TRUE(caught);
+        EXPECT_EQ(res.get_status_code(), HttpResponse::StatusCode::NoContent);
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Origin"), "https://example.com");
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Methods"), "GET,POST");
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Headers"), "Content-Type,Authorization");
+        EXPECT_EQ(res.get_header("Access-Control-Max-Age"), "600");
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Credentials"), "true");
     }
 
-    // 3. after 方法添加 Access-Control-Allow-Origin 头部
-    TEST(CorsMiddlewareTest, AfterAddsAllowOriginHeader)
+    // 测试：非法源请求应被禁止
+    TEST_F(CorsMiddlewareTest, DisallowedOriginShouldReturn403)
     {
-        CorsConfig config;
-        config.allow_origins_ = {"http://allowed.com"};
-        TestableCorsMiddleware middleware(config);
+        HttpRequest req = create_preflight_request("https://evil.com");
+        HttpResponse res;
 
-        HttpResponse response = create_ok_response();
-        middleware.after(response);
+        bool caught = handle_preflight(*middleware, req, res);
 
-        EXPECT_EQ(response.get_header("Access-Control-Allow-Origin"), "http://allowed.com");
+        EXPECT_TRUE(caught);
+        EXPECT_EQ(res.get_status_code(), HttpResponse::StatusCode::Forbidden);
     }
 
-    // 4. join 方法拼接字符串向量
-    TEST(CorsMiddlewareTest, JoinWorksCorrectly)
+    // 测试：正常跨域 GET 请求应在 after 阶段添加头
+    TEST_F(CorsMiddlewareTest, AfterShouldAddCORSHeadersIfOriginAllowed)
     {
-        TestableCorsMiddleware middleware;
+        HttpRequest req = create_normal_request("https://example.com");
+        HttpResponse res;
 
-        std::vector<std::string> vec = {"A", "B", "C"};
-        EXPECT_EQ(middleware.join(vec, ","), "A,B,C");
+        middleware->before(req);
+        middleware->after(res);
+
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Origin"), "https://example.com");
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Methods"), "GET,POST");
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Headers"), "Content-Type,Authorization");
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Credentials"), "true");
     }
 
-
-    // 5. after 方法处理空 allow_origins_（允许所有源）
-    TEST(CorsMiddlewareTest, AfterHandlesEmptyAllowOrigins)
+    // 测试：当 allow_origins 为 * 时，应返回通配符
+    TEST(CorsMiddlewareDefaultTest, WildcardOriginShouldReturnStar)
     {
-        CorsConfig config;
-        config.allow_origins_.clear(); // 表示允许所有源
-        TestableCorsMiddleware middleware(config);
+        CorsConfig config = CorsConfig::default_config();
+        CorsMiddleware middleware(config);
 
-        HttpResponse response = create_ok_response();
-        middleware.after(response);
+        HttpRequest req;
+        req.set_method(HttpRequest::Method::GET);
+        req.set_version("HTTP/1.1");
+        req.set_header("Origin", "https://anyorigin.com");
 
-        EXPECT_EQ(response.get_header("Access-Control-Allow-Origin"), "*");
-    }
+        HttpResponse res;
+        middleware.before(req);
+        middleware.after(res);
 
-    // 6. after 方法处理 allow_origins_ 包含 * 的情况
-    TEST(CorsMiddlewareTest, AfterHandlesAllowAll)
-    {
-        CorsConfig config;
-        config.allow_origins_ = {"*", "http://allowed.com"}; // * 在第一位
-        TestableCorsMiddleware middleware(config);
-
-        HttpResponse response = create_ok_response();
-        middleware.after(response);
-
-        EXPECT_EQ(response.get_header("Access-Control-Allow-Origin"), "*");
-    }
-
-    // 7. after 方法处理非通配符的多个源，取第一个
-    TEST(CorsMiddlewareTest, AfterUsesFirstOriginIfNotWildCard)
-    {
-        CorsConfig config;
-        config.allow_origins_ = {"http://a.com", "http://b.com"};
-        TestableCorsMiddleware middleware(config);
-
-        HttpResponse response = create_ok_response();
-        middleware.after(response);
-
-        EXPECT_EQ(response.get_header("Access-Control-Allow-Origin"), "http://a.com");
+        EXPECT_EQ(res.get_header("Access-Control-Allow-Origin"), "*");
     }
 
 } // namespace zhttp

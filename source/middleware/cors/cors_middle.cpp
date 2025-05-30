@@ -10,21 +10,31 @@ namespace zhttp::zmiddleware
     // 请求前处理
     void CorsMiddleware::before(zhttp::HttpRequest &request)
     {
-        LOG_DEBUG << "CorsMiddleware::before - Processing request";
-        if (request.get_method() == zhttp::HttpRequest::Method::OPTIONS)
-        {
-            // 处理预检请求
-            LOG_INFO << "Processing CORS preflight request";
-            HttpResponse response;
+        LOG_DEBUG << "Processing request";
+        // 判断是否为跨域请求（有 Origin 字段）
+        const std::string &origin = request.get_header("Origin");
+        is_cors_request_ = !origin.empty() && config_.server_origin_ != origin;
 
+        if (request.get_method() == HttpRequest::Method::OPTIONS && is_cors_request_)
+        {
+            // 仅处理跨域的 OPTIONS 预检请求
+            HttpResponse response;
             handle_preflight_request(request, response);
-            throw response; // 抛出响应
+            throw response;
         }
+
+        // 同源请求或非跨域预请求：无需额外处理，继续执行后续中间件
     }
 
     void CorsMiddleware::after(zhttp::HttpResponse &response)
     {
         LOG_DEBUG << "CorsMiddleware::after - Processing response";
+
+        // 先判断是否是跨域请求
+        if (!is_cors_request_)
+        {
+            return;
+        }
 
         if (!config_.allow_origins_.empty())
         {
@@ -62,32 +72,40 @@ namespace zhttp::zmiddleware
         return result;
     }
 
-    // 检查请求方法是否允许
+    // 检查请求源是否允许进行跨域请求
     bool CorsMiddleware::is_origin_allowed(const std::string &origin)
     {
+        // 如果没有允许的源，则允许所有源
+        if (config_.allow_origins_.empty()) return true;
+
+        if (std::find(config_.allow_origins_.begin(), config_.allow_origins_.end(), "*")
+            != config_.allow_origins_.end())
+        {
+            return true;
+        }
+
+        // 检查请求源是否在允许的源列表中
         return std::find(config_.allow_origins_.begin(), config_.allow_origins_.end(), origin)
-               != config_.allow_origins_.end()
-               || config_.allow_origins_.empty()
-               || std::find(config_.allow_origins_.begin(),
-                            config_.allow_origins_.end(), "*")
-                  != config_.allow_origins_.end();
+               != config_.allow_origins_.end();
     }
 
     // 处理预检请求
-    void CorsMiddleware::handle_preflight_request(HttpRequest &request, HttpResponse &response)
+    void CorsMiddleware::handle_preflight_request(HttpRequest &req, HttpResponse &res)
     {
-        const std::string &origin = request.get_header("Origin");
-
+        const auto origin = req.get_header("Origin");
         if (!is_origin_allowed(origin))
         {
-            LOG_WARN << "Origin not allowed: " << origin;
-            response.set_status_code(HttpResponse::StatusCode::Forbidden);
+            LOG_WARN << "CORS preflight blocked for origin: " << origin;
+            res.set_response_line(req.get_version(),
+                                  HttpResponse::StatusCode::Forbidden,
+                                  "Forbidden");
             return;
         }
-
-        add_cors_headers(response, origin);
-        response.set_status_code(HttpResponse::StatusCode::NoContent);
-        LOG_INFO << "Preflight request processed successfully";
+        add_cors_headers(res, origin);
+        res.set_response_line(req.get_version(),
+                              HttpResponse::StatusCode::NoContent,
+                              "No Content");
+        LOG_INFO << "CORS preflight OK for origin: " << origin;
     }
 
 

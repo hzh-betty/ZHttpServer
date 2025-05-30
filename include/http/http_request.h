@@ -16,6 +16,7 @@ namespace zhttp
             Invalid,
             GET,
             POST,
+            HEAD,
             PUT,
             DELETE,
             OPTIONS,

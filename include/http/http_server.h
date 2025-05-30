@@ -39,9 +39,6 @@ namespace zhttp
         // 启动
         void start();
 
-        // 获取主线程loop
-        muduo::net::EventLoop *get_main_loop();
-
         // 注册静态路由回调
         void Get(const std::string &path, const HttpCallback &cb);
 
@@ -57,14 +54,14 @@ namespace zhttp
         void add_regex_route(HttpRequest::Method method, const std::string &path, zrouter::Router::HandlerPtr handler);
 
         // 添加中间件
-        void add_middleware(const std::shared_ptr<zmiddleware::Middleware> &middleware);
+        void add_middleware(std::shared_ptr<zmiddleware::Middleware> middleware);
 
         // 添加SSL上下文
         void set_ssl_context();
 
     private:
         // 初始化
-        void init();
+        void init(uint16_t port,const std::string &name,muduo::net::TcpServer::Option option);
 
         // 新链接建立与断开回调
         void on_connection(const muduo::net::TcpConnectionPtr &conn);
@@ -86,14 +83,14 @@ namespace zhttp
         void send(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer &output);
 
     private:
-        muduo::net::InetAddress listen_addr_; // 监听地址
-        muduo::net::TcpServer server_; // tcp server
-        muduo::net::EventLoop main_loop_; // 主线程loop
-        HttpCallback callback_; // 默认回调函数
-        zrouter::Router router_; // 路由
-        zmiddleware::MiddlewareChain middleware_chain_; // 中间件链
+        std::unique_ptr<muduo::net::InetAddress> listen_addr_; // 监听地址
+        std::unique_ptr<muduo::net::EventLoop> main_loop_; // 主线程loop
+        std::unique_ptr<muduo::net::TcpServer> server_; // tcp server
+        std::unique_ptr<zrouter::Router> router_; // 路由
+        std::unique_ptr<zmiddleware::MiddlewareChain> middleware_chain_;// 中间件链
         std::unique_ptr<zssl::SslContext> ssl_context_; // SSL上下文
-        bool is_ssl_ = false; // 是否启用SSL
         std::unordered_map<muduo::net::TcpConnectionPtr, std::unique_ptr<zssl::SslConnection>> ssl_connections_;
+        HttpCallback callback_; // 默认回调函数
+        bool is_ssl_ = false; // 是否启用SSL
     };
 } // namespace zhttp

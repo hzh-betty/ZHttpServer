@@ -67,6 +67,8 @@ namespace zhttp
             request_.set_method(HttpRequest::Method::POST);
         else if (method == "PUT")
             request_.set_method(HttpRequest::Method::PUT);
+        else if(method == "HEAD")
+            request_.set_method(HttpRequest::Method::HEAD);
         else if (method == "DELETE")
             request_.set_method(HttpRequest::Method::DELETE);
         else if (method == "OPTIONS")

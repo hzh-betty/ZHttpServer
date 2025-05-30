@@ -11,7 +11,7 @@ namespace zhttp::zmiddleware
         ~MiddlewareChain() = default;
 
         // 添加中间件
-        void add_middleware(const std::shared_ptr<Middleware>& middleware);
+        void add_middleware(std::shared_ptr<Middleware>&& middleware);
 
         void process_before(HttpRequest& request);
 

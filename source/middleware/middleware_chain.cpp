@@ -4,9 +4,9 @@
 namespace zhttp::zmiddleware
 {
     // 添加中间件
-    void MiddlewareChain::add_middleware(const std::shared_ptr<Middleware> &middleware)
+    void MiddlewareChain::add_middleware(std::shared_ptr<Middleware> &&middleware)
     {
-        middlewares_.emplace_back(middleware);
+        middlewares_.emplace_back(std::move(middleware));
     }
 
     // 处理请求中间件

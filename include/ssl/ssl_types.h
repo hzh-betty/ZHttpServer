@@ -27,7 +27,6 @@ namespace zhttp::zssl
     {
         HANDSHAKE,
         ESTABLISHED,
-        SHUTDOWN,
         ERROR
     };
 } // namespace zhttp::zssl

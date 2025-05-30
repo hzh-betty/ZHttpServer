@@ -38,7 +38,6 @@ namespace zhttp
     void HttpResponse::set_response_line(const std::string_view &version,
                                          HttpResponse::StatusCode status_code,
                                          const std::string_view &status_message)
-
     {
         set_version(version);
         set_status_code(status_code);
@@ -46,7 +45,7 @@ namespace zhttp
     }
 
 
-// 设置与获取响应头
+    // 设置与获取响应头
     void HttpResponse::set_header(const std::string_view &key, const std::string_view &value)
     {
         headers_[std::string(key.begin(), key.end())] =
@@ -63,7 +62,7 @@ namespace zhttp
         return "";
     }
 
-// 设置与获取响应正文
+    // 设置与获取响应正文
     void HttpResponse::set_body(const std::string_view &body)
     {
         body_ = std::string(body.begin(), body.end());
@@ -75,19 +74,19 @@ namespace zhttp
         return body_;
     }
 
-// 设置相应正文类型
+    // 设置相应正文类型
     void HttpResponse::set_content_type(const std::string_view &content_type)
     {
         set_header("Content-Type", content_type);
     }
 
-// 设置相应正文长度
+    // 设置相应正文长度
     void HttpResponse::set_content_length(uint64_t length)
     {
         set_header("Content-Length", std::to_string(length));
     }
 
-// 设置与获取是否保持连接
+    // 设置与获取是否保持连接
     void HttpResponse::set_keep_alive(bool is_keep_alive)
     {
         is_keep_alive_ = is_keep_alive;
@@ -112,7 +111,7 @@ namespace zhttp
         output->append(version_ + " " + std::to_string(static_cast<int>(status_code_)) + " " +
                        status_message_ + delim);
         // 响应头
-        for (const auto &header : headers_)
+        for (const auto &header: headers_)
         {
             output->append(header.first + ": " + header.second + delim);
         }

@@ -22,8 +22,9 @@ namespace zhttp::zmiddleware
 
         ~CorsMiddleware() override = default;
     private:
-        // 检查请求方法是否允许
-        bool is_origin_allowed(const std::string& origin);
+
+        // 检查请求源是否允许
+        bool is_origin_allowed(const std::string&origin);
 
         // 处理预检请求
         void handle_preflight_request(HttpRequest& request, HttpResponse& response) ;
@@ -33,5 +34,6 @@ namespace zhttp::zmiddleware
 
     protected:
         CorsConfig config_;
+        bool is_cors_request_; // 是否是CORS请求
     };
 } // namespace zhttp::zmiddleware
