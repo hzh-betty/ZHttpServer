@@ -68,6 +68,7 @@ namespace zhttp::zmiddleware
     {
         HttpRequest req = create_normal_request(config.server_origin_);
         HttpResponse res;
+        res.set_request_origin(config.server_origin_);
 
         middleware->before(req);
         middleware->after(res);
@@ -80,6 +81,7 @@ namespace zhttp::zmiddleware
     {
         HttpRequest req = create_preflight_request("https://example.com");
         HttpResponse res;
+        res.set_request_origin("https://example.com");
 
         bool caught = handle_preflight(*middleware, req, res);
 
@@ -97,6 +99,7 @@ namespace zhttp::zmiddleware
     {
         HttpRequest req = create_preflight_request("https://evil.com");
         HttpResponse res;
+        res.set_request_origin("https://evil.com");
 
         bool caught = handle_preflight(*middleware, req, res);
 
@@ -109,6 +112,7 @@ namespace zhttp::zmiddleware
     {
         HttpRequest req = create_normal_request("https://example.com");
         HttpResponse res;
+        res.set_request_origin("https://example.com");
 
         middleware->before(req);
         middleware->after(res);
@@ -120,7 +124,7 @@ namespace zhttp::zmiddleware
     }
 
     // 测试：当 allow_origins 为 * 时，应返回通配符
-    TEST(CorsMiddlewareDefaultTest, WildcardOriginShouldReturnStar)
+    TEST_F(CorsMiddlewareTest, WildcardOriginShouldReturnStar)
     {
         CorsConfig config = CorsConfig::default_config();
         CorsMiddleware middleware(config);
@@ -131,6 +135,8 @@ namespace zhttp::zmiddleware
         req.set_header("Origin", "https://anyorigin.com");
 
         HttpResponse res;
+        res.set_request_origin("https://anyorigin.com");
+
         middleware.before(req);
         middleware.after(res);
 

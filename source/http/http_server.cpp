@@ -156,29 +156,6 @@ namespace zhttp
     void HttpServer::on_message(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer *buf,
                                 muduo::Timestamp receive_time)
     {
-        if (is_ssl_)
-        {
-            // 1. 查找SSL连接
-            auto iter = ssl_connections_.find(conn);
-
-            if (iter == ssl_connections_.end())
-            {
-                LOG_ERROR << "ssl connection not found";
-                return;
-            }
-
-            // 2. 处理SSL连接
-            if (iter != ssl_connections_.end())
-            {
-                // 3. 如果握手未完成
-                if (!iter->second->is_handshake_completed())
-                {
-                    LOG_INFO << "ssl handshake not completed";
-                    return;
-                }
-            }
-        }
-
         auto *context = boost::any_cast<HttpContext>(conn->getMutableContext());
         if (!context->parse_request(buf, receive_time))
         {
@@ -212,6 +189,10 @@ namespace zhttp
         HttpResponse response;
         response.set_keep_alive(!close);
 
+        // 判断是否为跨域请求（有 Origin 字段）
+        const std::string &origin = request.get_header("Origin");
+        response.set_request_origin(origin);
+
         callback_(request, &response);
 
         // 响应数据
@@ -237,6 +218,7 @@ namespace zhttp
             // 处理请求前中间件
             HttpRequest req = request;
             middleware_chain_->process_before(req);
+
 
             // 路由处理
             if (!router_->route(req, response))

@@ -13,9 +13,9 @@ namespace zhttp::zmiddleware
         LOG_DEBUG << "Processing request";
         // 判断是否为跨域请求（有 Origin 字段）
         const std::string &origin = request.get_header("Origin");
-        is_cors_request_ = !origin.empty() && config_.server_origin_ != origin;
+        bool is_cors_request = !origin.empty() && config_.server_origin_ != origin;
 
-        if (request.get_method() == HttpRequest::Method::OPTIONS && is_cors_request_)
+        if (request.get_method() == HttpRequest::Method::OPTIONS && is_cors_request)
         {
             // 仅处理跨域的 OPTIONS 预检请求
             HttpResponse response;
@@ -30,11 +30,12 @@ namespace zhttp::zmiddleware
     {
         LOG_DEBUG << "CorsMiddleware::after - Processing response";
 
-        // 先判断是否是跨域请求
-        if (!is_cors_request_)
-        {
+        // 判断是否为跨域请求（有 Origin 字段）
+        const std::string &origin = response.get_request_origin();
+        bool is_cors_request = !origin.empty() && config_.server_origin_ != origin;
+
+        if(!is_cors_request)
             return;
-        }
 
         if (!config_.allow_origins_.empty())
         {

@@ -4,39 +4,38 @@
 #include <unordered_map>
 #include <chrono>
 
-
-    namespace zhttp::zsession
+namespace zhttp::zsession
+{
+    class Session
     {
-        class Session
-        {
-        public:
-            explicit Session(std::string session_id, uint32_t timeout = 3600);
+    public:
+        explicit Session(std::string session_id, uint32_t timeout = 3600);
 
-            // 获取会话ID
-            const std::string &get_session_id() const;
+        // 获取会话ID
+        const std::string &get_session_id() const;
 
-            // 设置与提取会话属性
-            void set_attribute(const std::string &key, const std::string &value);
+        // 设置与提取会话属性
+        void set_attribute(const std::string &key, const std::string &value);
 
-            std::string get_attribute(const std::string &key) const;
+        std::string get_attribute(const std::string &key) const;
 
-            // 刷新过期时间
-            void refresh();
+        // 刷新过期时间
+        void refresh();
 
-            // 检查会话是否过期
-            bool is_expired() const;
+        // 检查会话是否过期
+        bool is_expired() const;
 
-            // 移除会话属性
-            void remove_attribute(const std::string &key);
+        // 移除会话属性
+        void remove_attribute(const std::string &key);
 
-            // 清空会话属性
-            void clear_attributes();
+        // 清空会话属性
+        void clear_attributes();
 
-        private:
-            std::string session_id_; // 会话ID
-            std::unordered_map<std::string, std::string> attributes_; // 会话属性
-            std::chrono::system_clock::time_point expiry_time_; // 过期时间
-            uint32_t timeout_; // 会话超时时间（秒）
-        };
-    } // namespace zhttp::zsession
+    private:
+        std::string session_id_; // 会话ID
+        std::unordered_map<std::string, std::string> attributes_; // 会话属性
+        std::chrono::system_clock::time_point expiry_time_; // 过期时间
+        uint32_t timeout_; // 会话超时时间（秒）
+    };
+} // namespace zhttp::zsession
 

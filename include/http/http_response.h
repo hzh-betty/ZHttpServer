@@ -76,7 +76,13 @@ namespace zhttp
 
         bool is_keep_alive() const;
 
+        // 将响应数据写入buffer
         void append_buffer(muduo::net::Buffer *output) const;
+
+        // 设置与获取请求来源
+        void set_request_origin(const std::string &origin);
+
+        const std::string &get_request_origin() const;
 
     private:
         std::string version_;// http版本
@@ -85,6 +91,7 @@ namespace zhttp
         std::unordered_map<std::string, std::string> headers_;// 响应头
         std::string body_;// 响应正文
         bool is_keep_alive_ = false;// 是否保持连接
+        std::string request_origin_; // 请求来源
     };
 
     // 每行之间的分隔符

@@ -119,4 +119,14 @@ namespace zhttp
         output->append(delim + get_body());
     }
 
+    void HttpResponse::set_request_origin(const std::string &origin)
+    {
+        request_origin_ = origin;
+    }
+
+    const std::string &HttpResponse::get_request_origin() const
+    {
+        return  request_origin_;
+    }
+
 }// namespace zhttp

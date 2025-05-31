@@ -34,6 +34,6 @@ namespace zhttp::zmiddleware
 
     protected:
         CorsConfig config_;
-        bool is_cors_request_; // 是否是CORS请求
+
     };
 } // namespace zhttp::zmiddleware
