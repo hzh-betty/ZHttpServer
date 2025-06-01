@@ -297,6 +297,7 @@ namespace zhttp
             {
                 response->set_status_code(zhttp::HttpResponse::StatusCode::NotFound);
                 response->set_status_message("Not Found");
+                response->set_body("404 Not Found");
                 response->set_keep_alive(false);
             }
 

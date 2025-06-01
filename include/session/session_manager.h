@@ -6,6 +6,8 @@
 #include "../http/http_response.h"
 #include <random>
 #include <sstream>
+#include <mutex>
+#include <shared_mutex>
 
 namespace zhttp::zsession
 {
@@ -58,6 +60,7 @@ namespace zhttp::zsession
     private:
         std::unique_ptr<Storage> session_storage_; // 会话存储
         std::mt19937 rng_ = std::mt19937(std::random_device{}()); // 随机数生成器
+        std::shared_mutex rb_mutex_{}; // 读写锁
     };
 } // namespace zhttp::zsession
 

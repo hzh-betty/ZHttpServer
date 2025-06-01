@@ -19,7 +19,7 @@ namespace zhttp::zmiddleware
             config.allow_origins_ = {"*"}; // 默认允许所有源
             config.allow_methods_ = {"GET", "POST", "PUT", "DELETE", "OPTIONS"}; // 默认允许所有方法
             config.allow_headers_ = {"Content-Type", "Authorization"}; // 默认允许的请求头
-            config.server_origin_ = "1.95.159.45";
+            config.server_origin_ = "https://1.95.159.45";
             return config;
         }
     };

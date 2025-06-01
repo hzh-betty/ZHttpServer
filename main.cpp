@@ -2,6 +2,7 @@
 #include "include/http/http_server.h"
 #include "include/ssl/ssl_config.h"
 #include "include/middleware/cors/cors_middle.h"
+
 int main()
 {
     // 设置日志级别
@@ -48,25 +49,76 @@ int main()
         serverPtr->set_thread_num(4);
 
         // 添加一个测试端点
-        serverPtr->Get("/test1", [](const zhttp::HttpRequest& req, zhttp::HttpResponse* resp) {
-            resp->set_status_code(zhttp::HttpResponse::StatusCode::OK);
-            resp->set_status_message("OK");
+        serverPtr->Get("/get", [](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
+        {
+            resp->set_response_line(req.get_version(),
+                                    zhttp::HttpResponse::StatusCode::OK, "OK");
             resp->set_content_type("text/plain");
             resp->set_body("Hello, World!");
         });
 
-        serverPtr->Post("/test2", [](const zhttp::HttpRequest& req, zhttp::HttpResponse* resp) {
-
+        serverPtr->Post("/post", [](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
+        {
+            resp->set_response_line(req.get_version(),
+                                    zhttp::HttpResponse::StatusCode::Created, "Created");
+            resp->set_header("Location","https://example.com");
+            resp->set_content_type("application/json");
+            resp->set_body(R"({"message":"POST request processed"})");
         });
 
+        // PUT请求示例
+        serverPtr->Put("/update", [](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
+        {
+            resp->set_response_line(req.get_version(),
+                                    zhttp::HttpResponse::StatusCode::OK, "OK");
+            resp->set_content_type("application/json");
+            resp->set_body(R"({"message":"PUT request processed"})");
+        });
+
+        // DELETE请求示例
+        serverPtr->Delete("/delete", [](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
+        {
+            resp->set_response_line(req.get_version(),
+                                    zhttp::HttpResponse::StatusCode::OK, "OK");
+            resp->set_content_type("application/json");
+            resp->set_body(R"({"message":"DELETE request processed"})");
+        });
+
+        // PATCH请求示例
+        serverPtr->Patch("/patch", [](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
+        {
+            resp->set_response_line(req.get_version(),
+                                    zhttp::HttpResponse::StatusCode::OK, "OK");
+            resp->set_content_type("application/json");
+            resp->set_body(R"({"message":"PATCH request processed"})");
+        });
+
+        // HEAD请求示例
+        serverPtr->Head("/head", [](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
+        {
+            resp->set_response_line(req.get_version(),
+                                    zhttp::HttpResponse::StatusCode::NoContent, "No Content");
+            resp->set_header("Content-Length", "0");
+        });
+
+        // OPTIONS请求（已默认注册，可自定义）
+        serverPtr->Options([](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
+                           {
+                               resp->set_response_line(req.get_version(),
+                                                       zhttp::HttpResponse::StatusCode::OK, "OK");
+                               resp->set_header("Allow", "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS");
+                               resp->set_content_type("text/plain");
+                               resp->set_body("Supported methods");
+                           });
+
         serverPtr->add_middleware(std::make_shared<zhttp::zmiddleware::CorsMiddleware>
-                (zhttp::zmiddleware::CorsConfig::default_config()));
+                                          (zhttp::zmiddleware::CorsConfig::default_config()));
 
         // 启动服务器
         LOG_INFO << "Server starting on port 443...";
         serverPtr->start();
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         LOG_FATAL << "Server start failed: " << e.what();
         return 1;

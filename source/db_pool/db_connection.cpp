@@ -1,5 +1,4 @@
 #include <utility>
-
 #include "../../include/db_pool/db_connection.h"
 
 namespace zhttp::zdb

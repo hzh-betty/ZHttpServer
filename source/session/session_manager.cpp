@@ -10,7 +10,10 @@ namespace zhttp::zsession
         std::shared_ptr<Session> session;
         if (!session_id.empty())
         {
-            session = session_storage_->load(session_id);
+            {
+                std::shared_lock<std::shared_mutex> r_lock(rb_mutex_); // 自动管理生命周期
+                session = session_storage_->load(session_id);
+            }
             // 如果会话存在，则检查是否过期
             if (session)
             {
@@ -18,7 +21,7 @@ namespace zhttp::zsession
                 if (session->is_expired())
                 {
                     // 如果会话已过期，则删除会话
-                    session_storage_->remove(session_id);
+                    destroy_session(session_id);
                     session.reset();
                 }
             }
@@ -30,6 +33,7 @@ namespace zhttp::zsession
             session_id = generate_session_id();
             session = std::make_shared<Session>(session_id);
             set_session_id_to_response(response, session_id);
+            std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
             session_storage_->store(session);
         }
 
@@ -46,18 +50,21 @@ namespace zhttp::zsession
     // 销毁会话
     void SessionManager::destroy_session(const std::string &session_id)
     {
+        std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
         session_storage_->remove(session_id);
     }
 
     // 更新会话
     void SessionManager::update_session(const std::shared_ptr<Session> &session)
     {
+        std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
         session_storage_->store(session);
     }
 
     // 清理所有过期会话
     void SessionManager::cleanup_expired_sessions()
     {
+        std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
         session_storage_->clear_expired();
     }
 
