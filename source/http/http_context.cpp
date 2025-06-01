@@ -67,7 +67,9 @@ namespace zhttp
             request_.set_method(HttpRequest::Method::POST);
         else if (method == "PUT")
             request_.set_method(HttpRequest::Method::PUT);
-        else if(method == "HEAD")
+        else if (method == "PATCH")
+            request_.set_method(HttpRequest::Method::PATCH);
+        else if (method == "HEAD")
             request_.set_method(HttpRequest::Method::HEAD);
         else if (method == "DELETE")
             request_.set_method(HttpRequest::Method::DELETE);
@@ -167,7 +169,7 @@ namespace zhttp
         return state_ == HttpRequestParseState::ExpectComplete;
     }
 
-    const HttpRequest &HttpContext::request()const
+    const HttpRequest &HttpContext::request() const
     {
         return request_;
     }

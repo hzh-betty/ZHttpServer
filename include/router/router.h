@@ -74,8 +74,7 @@ namespace zhttp::zrouter
         void register_handler(const std::string &path, const HttpRequest::Method &method, HandlerPtr handler);
 
         // 注册路由回调函数
-        void
-        register_callback(const std::string &path, const HttpRequest::Method &method, HandlerCallback callback);
+        void register_callback(const std::string &path, const HttpRequest::Method &method, HandlerCallback callback);
 
         // 注册动态路由处理器
         void register_regex_handler(const std::string &path, const HttpRequest::Method &method, HandlerPtr handler);

@@ -129,4 +129,15 @@ namespace zhttp
         return  request_origin_;
     }
 
+    std::string HttpResponse::to_http_date(const muduo::Timestamp &time)
+    {
+        time_t seconds = time.secondsSinceEpoch();
+        struct tm tm_time{};
+        gmtime_r(&seconds, &tm_time);  // 使用 gmtime_r 确保线程安全
+
+        char buf[32];
+        strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &tm_time);
+        return buf;
+    }
+
 }// namespace zhttp

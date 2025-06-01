@@ -52,12 +52,67 @@ namespace zhttp
         router_->register_handler(path, HttpRequest::Method::POST, std::move(handler));
     }
 
+    // PUT 方法实现
+    void HttpServer::Put(const std::string &path, const HttpCallback &cb)
+    {
+        router_->register_callback(path, HttpRequest::Method::PUT, cb);
+    }
+
+    void HttpServer::Put(const std::string &path, zrouter::Router::HandlerPtr handler)
+    {
+        router_->register_handler(path, HttpRequest::Method::PUT, std::move(handler));
+    }
+
+    // DELETE 方法实现
+    void HttpServer::Delete(const std::string &path, const HttpCallback &cb)
+    {
+        router_->register_callback(path, HttpRequest::Method::DELETE, cb);
+    }
+
+    void HttpServer::Delete(const std::string &path, zrouter::Router::HandlerPtr handler)
+    {
+        router_->register_handler(path, HttpRequest::Method::DELETE, std::move(handler));
+    }
+
+    // PATCH 方法实现
+    void HttpServer::Patch(const std::string &path, const HttpCallback &cb)
+    {
+        router_->register_callback(path, HttpRequest::Method::PATCH, cb);
+    }
+
+    void HttpServer::Patch(const std::string &path, zrouter::Router::HandlerPtr handler)
+    {
+        router_->register_handler(path, HttpRequest::Method::PATCH, std::move(handler));
+    }
+
+    // HEAD 方法实现
+    void HttpServer::Head(const std::string &path, const HttpCallback &cb)
+    {
+        router_->register_callback(path, HttpRequest::Method::HEAD, cb);
+    }
+
+    void HttpServer::Head(const std::string &path, zrouter::Router::HandlerPtr handler)
+    {
+        router_->register_handler(path, HttpRequest::Method::HEAD, std::move(handler));
+    }
+
+    // OPTIONS 方法实现
+    void HttpServer::Options(const HttpCallback &cb)
+    {
+        router_->register_callback(options_path_, HttpRequest::Method::OPTIONS, cb);
+    }
+
+    void HttpServer::Options(zrouter::Router::HandlerPtr handler)
+    {
+        router_->register_handler(options_path_, HttpRequest::Method::OPTIONS, std::move(handler));
+    }
+
+
     // 注册动态路由回调
     void HttpServer::add_regex_route(HttpRequest::Method method, const std::string &path, const HttpCallback &cb)
     {
         router_->register_regex_callback(path, method, cb);
     }
-
 
     void HttpServer::add_regex_route(HttpRequest::Method method, const std::string &path,
                                      zrouter::Router::HandlerPtr handler)
@@ -96,6 +151,16 @@ namespace zhttp
                                                    std::forward<decltype(PH2)>(PH2),
                                                    std::forward<decltype(PH3)>(PH3));
                                     });
+
+        // 注册默认OPTIONS回调
+        HttpCallback default_options_callback = [&](const zhttp::HttpRequest& req, zhttp::HttpResponse* res)
+        {
+            res->set_response_line(req.get_version(),
+                                   HttpResponse::StatusCode::NoContent, "No Content");
+            res->set_header("Allow", "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS");
+        };
+        router_->register_callback(options_path_,
+                                   HttpRequest::Method::OPTIONS,default_options_callback);
         LOG_INFO << "HttpServer init successfully";
     }
 
@@ -169,12 +234,14 @@ namespace zhttp
             return;
         }
 
-        if (context->is_parse_complete())
+        if (!context->is_parse_complete())
         {
-            on_request(conn, context->request());
-            context->reset();
-            LOG_INFO << "HttpServer on_message successfully";
+            return;
         }
+
+        on_request(conn, context->request());
+        context->reset();
+        LOG_INFO << "HttpServer on_message successfully";
     }
 
     // 得到一个完整的HTTP请求后的回调处理
@@ -219,6 +286,11 @@ namespace zhttp
             HttpRequest req = request;
             middleware_chain_->process_before(req);
 
+            // 特殊处理 OPTIONS 请求
+            if(req.get_method() == HttpRequest::Method::OPTIONS)
+            {
+                req.set_path(options_path_);
+            }
 
             // 路由处理
             if (!router_->route(req, response))
@@ -245,7 +317,10 @@ namespace zhttp
             response->set_status_message("Internal Server Error");
             response->set_body(e.what());
         }
+
         response->set_version(request.get_version()); // 设置响应版本号
+        response->set_header("Date",
+                             zhttp::HttpResponse::to_http_date(muduo::Timestamp::now()));
     }
 
     // 向客户端发送数据

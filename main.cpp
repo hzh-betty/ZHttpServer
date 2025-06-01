@@ -1,7 +1,7 @@
 #include <muduo/base/Logging.h>
 #include "include/http/http_server.h"
 #include "include/ssl/ssl_config.h"
-
+#include "include/middleware/cors/cors_middle.h"
 int main()
 {
     // 设置日志级别
@@ -48,12 +48,19 @@ int main()
         serverPtr->set_thread_num(4);
 
         // 添加一个测试端点
-        serverPtr->Get("/", [](const zhttp::HttpRequest& req, zhttp::HttpResponse* resp) {
+        serverPtr->Get("/test1", [](const zhttp::HttpRequest& req, zhttp::HttpResponse* resp) {
             resp->set_status_code(zhttp::HttpResponse::StatusCode::OK);
             resp->set_status_message("OK");
             resp->set_content_type("text/plain");
             resp->set_body("Hello, World!");
         });
+
+        serverPtr->Post("/test2", [](const zhttp::HttpRequest& req, zhttp::HttpResponse* resp) {
+
+        });
+
+        serverPtr->add_middleware(std::make_shared<zhttp::zmiddleware::CorsMiddleware>
+                (zhttp::zmiddleware::CorsConfig::default_config()));
 
         // 启动服务器
         LOG_INFO << "Server starting on port 443...";

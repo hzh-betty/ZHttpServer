@@ -48,6 +48,31 @@ namespace zhttp
 
         void Post(const std::string &path, zrouter::Router::HandlerPtr handler);
 
+        // PUT 请求注册
+        void Put(const std::string &path, const HttpCallback &cb);
+
+        void Put(const std::string &path, zrouter::Router::HandlerPtr handler);
+
+        // DELETE 请求注册
+        void Delete(const std::string &path, const HttpCallback &cb);
+
+        void Delete(const std::string &path, zrouter::Router::HandlerPtr handler);
+
+        // PATCH 请求注册
+        void Patch(const std::string &path, const HttpCallback &cb);
+
+        void Patch(const std::string &path, zrouter::Router::HandlerPtr handler);
+
+        // HEAD 请求注册
+        void Head(const std::string &path, const HttpCallback &cb);
+
+        void Head(const std::string &path, zrouter::Router::HandlerPtr handler);
+
+        // OPTIONS 请求注册
+        void Options(const HttpCallback &cb);
+
+        void Options(zrouter::Router::HandlerPtr handler);
+
         // 注册动态路由回调
         void add_regex_route(HttpRequest::Method method, const std::string &path, const HttpCallback &cb);
 
@@ -92,5 +117,7 @@ namespace zhttp
         std::unordered_map<muduo::net::TcpConnectionPtr, std::unique_ptr<zssl::SslConnection>> ssl_connections_;
         HttpCallback callback_; // 默认回调函数
         bool is_ssl_ = false; // 是否启用SSL
+        inline static std::string options_path_ = "/options/method";// OPTIONS请求的路径
     };
+
 } // namespace zhttp

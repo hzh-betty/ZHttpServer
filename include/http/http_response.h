@@ -84,6 +84,10 @@ namespace zhttp
 
         const std::string &get_request_origin() const;
 
+        // 获取当前时间转为RFC 1123 字符串格式
+        // Day, DD Mon YYYY HH:MM:SS GMT
+        static std::string to_http_date(const muduo::Timestamp &time) ;
+
     private:
         std::string version_;// http版本
         StatusCode status_code_ = StatusCode::UnKnown;// 响应状态码
