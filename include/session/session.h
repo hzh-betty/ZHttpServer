@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <chrono>
+#include <nlohmann/json.hpp>
 
 namespace zhttp::zsession
 {
@@ -30,6 +31,14 @@ namespace zhttp::zsession
 
         // 清空会话属性
         void clear_attributes();
+
+        // 获取json格式会话属性
+        nlohmann::json get_attributes_json() const;
+
+        // 获取过期时间
+        std::chrono::system_clock::time_point get_expiry_time() const;
+
+        void set_expiry_time(std::chrono::system_clock::time_point time_point);
 
     private:
         std::string session_id_; // 会话ID

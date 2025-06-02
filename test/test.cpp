@@ -5,7 +5,7 @@
 #include "router/test_router.h"
 
 #include "session/test_session.h"
-#include "session/test_session_storage.h"
+#include "session/test_memory_storage.h"
 #include "session/test_session_manager.h"
 
 #include "middleware/test_middleware_chain.h"

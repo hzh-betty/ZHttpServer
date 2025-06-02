@@ -1,5 +1,7 @@
 #include "../../include/session/session_manager.h"
-
+#include <sstream>
+#include <mutex>
+#include <shared_mutex>
 
 namespace zhttp::zsession
 {
@@ -48,21 +50,21 @@ namespace zhttp::zsession
 
 
     // 销毁会话
-    void SessionManager::destroy_session(const std::string &session_id)
+    void SessionManager::destroy_session(const std::string &session_id) const
     {
         std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
         session_storage_->remove(session_id);
     }
 
     // 更新会话
-    void SessionManager::update_session(const std::shared_ptr<Session> &session)
+    void SessionManager::update_session(const std::shared_ptr<Session> &session) const
     {
         std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
         session_storage_->store(session);
     }
 
     // 清理所有过期会话
-    void SessionManager::cleanup_expired_sessions()
+    void SessionManager::cleanup_expired_sessions() const
     {
         std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
         session_storage_->clear_expired();
@@ -85,13 +87,12 @@ namespace zhttp::zsession
     std::string SessionManager::get_session_id_from_request(const HttpRequest &request)
     {
         std::string session_id;
-        auto cookie = request.get_header("Cookie");
-        if (!cookie.empty())
+        if (auto cookie = request.get_header("Cookie"); !cookie.empty())
         {
-            size_t pos = cookie.find("session_id=");
+            const size_t pos = cookie.find("session_id=");
             if (pos != std::string::npos)
             {
-                size_t end = cookie.find(';', pos);
+                const size_t end = cookie.find(';', pos);
                 session_id = cookie.substr(pos + 11, end - pos - 11);
             }
         }
@@ -101,10 +102,8 @@ namespace zhttp::zsession
     // 设置会话ID到响应中Cookie
     void SessionManager::set_session_id_to_response(HttpResponse *response, const std::string &session_id)
     {
-        std::string cookie = "session_id=" + session_id + "; Path=/; HttpOnly";
+        const std::string cookie = "session_id=" + session_id + "; Path=/; HttpOnly; Secure";
         response->set_header("Set-Cookie", cookie);
     }
 
 } // namespace zhttp::zsession
-
-// namespace

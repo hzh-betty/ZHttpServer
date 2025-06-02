@@ -26,7 +26,7 @@ namespace zhttp::zdb
     }
 
     // 检查连接是否可用
-    bool DbConnection::ping()
+    bool DbConnection::ping() const
     {
         try
         {
@@ -58,12 +58,11 @@ namespace zhttp::zdb
 
             if (!connection_) return false;
             std::unique_ptr<sql::Statement> stmt(connection_->createStatement());
-            bool ok = stmt->execute("SELECT 1");
 
             // 如果它返回了 resultset，就手动去取：
-            if (ok)
+            if (stmt->execute("SELECT 1"))
             {
-                std::unique_ptr<sql::ResultSet> rs (stmt->getResultSet());
+                const std::unique_ptr<sql::ResultSet> rs (stmt->getResultSet());
                 while (rs && rs->next())
                 {
                     // 获取结果

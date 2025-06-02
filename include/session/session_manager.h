@@ -1,12 +1,9 @@
 #pragma once
-
 #include "session.h"
-#include "session_storage.h"
+#include "memory_storage.h"
 #include "../http/http_request.h"
 #include "../http/http_response.h"
 #include <random>
-#include <sstream>
-#include <mutex>
 #include <shared_mutex>
 
 namespace zhttp::zsession
@@ -32,13 +29,13 @@ namespace zhttp::zsession
         void set_session_storage(std::unique_ptr<Storage> &&session_storage);
 
         // 销毁会话
-        void destroy_session(const std::string &session_id);
+        void destroy_session(const std::string &session_id) const;
 
         // 更新会话
-        void update_session(const std::shared_ptr<Session> &session);
+        void update_session(const std::shared_ptr<Session> &session) const;
 
         // 清除所有过期会话
-        void cleanup_expired_sessions();
+        void cleanup_expired_sessions() const;
 
     private:
         SessionManager()
@@ -60,7 +57,7 @@ namespace zhttp::zsession
     private:
         std::unique_ptr<Storage> session_storage_; // 会话存储
         std::mt19937 rng_ = std::mt19937(std::random_device{}()); // 随机数生成器
-        std::shared_mutex rb_mutex_{}; // 读写锁
+        mutable std::shared_mutex rb_mutex_{}; // 读写锁
     };
 } // namespace zhttp::zsession
 

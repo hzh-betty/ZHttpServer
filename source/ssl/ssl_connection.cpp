@@ -1,4 +1,4 @@
-#include "ssl/ssl_connection.h"
+#include "../../ssl/ssl_connection.h"
 #include <muduo/base/Logging.h>
 #include <openssl/err.h>
 
@@ -167,7 +167,7 @@ namespace zhttp::zssl
         char buf[4096];
         while (int pend = BIO_pending(write_bio_))
         {
-            int n = BIO_read(write_bio_, buf, std::min(pend, (int) sizeof(buf)));
+            int n = BIO_read(write_bio_, buf, std::min(pend, static_cast<int>(sizeof(buf))));
             if (n > 0)
             {
                 write_buffer_.append(buf, n);
@@ -279,10 +279,10 @@ namespace zhttp::zssl
         size_t to_read = std::min(static_cast<size_t>(len), readable);
         memcpy(data, conn->read_buffer_.peek(), to_read);
         conn->read_buffer_.retrieve(to_read);
-        return (int) to_read;
+        return static_cast<int>(to_read);
     }
 
-    long SslConnection::bio_ctrl(BIO *bio, int cmd, long num, void *ptr)
+    long SslConnection::bio_ctrl(BIO *bio, const int cmd, long num, void *ptr)
     {
         switch (cmd)
         {

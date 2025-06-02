@@ -107,7 +107,7 @@ namespace zhttp::zdb
 
 
     // 修改检查连接的函数
-    void DbConnectionPool::check_connections()
+    void DbConnectionPool::check_connections() const
     {
         while (true)
         {

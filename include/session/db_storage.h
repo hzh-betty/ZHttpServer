@@ -1,16 +1,21 @@
-//
-// Created by DELL on 2025/6/2.
-//
+#pragma once
+#include "../db_pool/db_pool.h"
+#include "session_storage.h"
 
-#ifndef DB_STORAGE_H
-#define DB_STORAGE_H
+namespace zhttp::zsession
+{
+    class DbSessionStorage final : public Storage
+    {
+    public:
+        void store(const std::shared_ptr<Session> &session) override;
 
+        std::shared_ptr<Session> load(const std::string &session_id) override;
 
+        void remove(const std::string &session_id) override;
 
-class db_storage {
+        void clear_expired() override;
 
-};
-
-
-
-#endif //DB_STORAGE_H
+    private:
+        zdb::DbConnectionPool &pool_ = zdb::DbConnectionPool::get_instance();
+    };
+} //  namespace zhttp::zsession

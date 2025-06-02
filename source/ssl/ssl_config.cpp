@@ -1,4 +1,4 @@
-#include "ssl/ssl_config.h"
+#include "../../ssl/ssl_config.h"
 
 namespace zhttp::zssl
 {

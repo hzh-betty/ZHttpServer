@@ -104,7 +104,7 @@ namespace zhttp::zdb
         }
 
         // 添加检测连接是否有效
-        bool ping();
+        bool ping() const;
 
     private:
         // 辅助连接并配置

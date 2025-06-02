@@ -36,7 +36,7 @@ namespace zhttp::zdb
         std::shared_ptr<DbConnection> create_connection();
 
         //  检查连接
-        void check_connections();
+        void check_connections() const;
     private:
         std::string host_;
         std::string user_;
