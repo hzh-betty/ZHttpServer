@@ -62,15 +62,15 @@ namespace zhttp::zssl
     {
         return verify_peer_;
     }
-    u_int32_t SslConfig::get_verify_depth() const
+    uint32_t SslConfig::get_verify_depth() const
     {
         return verify_depth_;
     }
-    u_int32_t SslConfig::get_session_timeout() const
+    uint32_t SslConfig::get_session_timeout() const
     {
         return session_timeout_;
     }
-    u_int64_t SslConfig::get_session_cache_size() const
+    uint64_t SslConfig::get_session_cache_size() const
     {
         return session_cache_size_;
     }

@@ -34,52 +34,52 @@ namespace zhttp
                    muduo::net::TcpServer::Option option = muduo::net::TcpServer::kNoReusePort);
 
         // 启动线程数
-        void set_thread_num(uint32_t num);
+        void set_thread_num(uint32_t num) const;
 
         // 启动
         void start();
 
         // 注册静态路由回调
-        void Get(const std::string &path, const HttpCallback &cb);
+        void Get(const std::string &path, const HttpCallback &cb) const;
 
-        void Get(const std::string &path, zrouter::Router::HandlerPtr handler);
+        void Get(const std::string &path, zrouter::Router::HandlerPtr handler) const;
 
-        void Post(const std::string &path, const HttpCallback &cb);
+        void Post(const std::string &path, const HttpCallback &cb) const;
 
-        void Post(const std::string &path, zrouter::Router::HandlerPtr handler);
+        void Post(const std::string &path, zrouter::Router::HandlerPtr handler) const;
 
         // PUT 请求注册
-        void Put(const std::string &path, const HttpCallback &cb);
+        void Put(const std::string &path, const HttpCallback &cb) const;
 
-        void Put(const std::string &path, zrouter::Router::HandlerPtr handler);
+        void Put(const std::string &path, zrouter::Router::HandlerPtr handler) const;
 
         // DELETE 请求注册
-        void Delete(const std::string &path, const HttpCallback &cb);
+        void Delete(const std::string &path, const HttpCallback &cb) const;
 
-        void Delete(const std::string &path, zrouter::Router::HandlerPtr handler);
+        void Delete(const std::string &path, zrouter::Router::HandlerPtr handler) const;
 
         // PATCH 请求注册
-        void Patch(const std::string &path, const HttpCallback &cb);
+        void Patch(const std::string &path, const HttpCallback &cb) const;
 
-        void Patch(const std::string &path, zrouter::Router::HandlerPtr handler);
+        void Patch(const std::string &path, zrouter::Router::HandlerPtr handler) const;
 
         // HEAD 请求注册
-        void Head(const std::string &path, const HttpCallback &cb);
+        void Head(const std::string &path, const HttpCallback &cb) const;
 
-        void Head(const std::string &path, zrouter::Router::HandlerPtr handler);
+        void Head(const std::string &path, zrouter::Router::HandlerPtr handler) const;
 
         // OPTIONS 请求注册
-        void Options(const HttpCallback &cb);
+        void Options(const HttpCallback &cb) const;
 
-        void Options(zrouter::Router::HandlerPtr handler);
+        void Options(zrouter::Router::HandlerPtr handler) const;
 
         // 注册动态路由回调
-        void add_regex_route(HttpRequest::Method method, const std::string &path, const HttpCallback &cb);
+        void add_regex_route(HttpRequest::Method method, const std::string &path, const HttpCallback &cb) const;
 
-        void add_regex_route(HttpRequest::Method method, const std::string &path, zrouter::Router::HandlerPtr handler);
+        void add_regex_route(HttpRequest::Method method, const std::string &path, zrouter::Router::HandlerPtr handler) const;
 
         // 添加中间件
-        void add_middleware(std::shared_ptr<zmiddleware::Middleware> middleware);
+        void add_middleware(std::shared_ptr<zmiddleware::Middleware> middleware) const;
 
         // 添加SSL上下文
         void set_ssl_context();
@@ -98,11 +98,11 @@ namespace zhttp
 
         // 得到一个完整的HTTP请求后的回调处理
         void on_request(const muduo::net::TcpConnectionPtr &conn,
-                        zhttp::HttpRequest &request);
+                        const zhttp::HttpRequest &request);
 
         // 中间件-路由-中间件处理
         void handle_request(const zhttp::HttpRequest &request,
-                            zhttp::HttpResponse *response);
+                            zhttp::HttpResponse *response) const;
 
         // 向客户端响应数据
         void send(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer &output);

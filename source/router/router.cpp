@@ -7,7 +7,7 @@ namespace zhttp::zrouter
     void Router::register_handler(const std::string &path, const HttpRequest::Method &method,
                                   Router::HandlerPtr handler)
     {
-        Router::RouteKey key{method, path};
+        const Router::RouteKey key{method, path};
         handlers_[key] = std::move(handler);
     }
 
@@ -16,7 +16,7 @@ namespace zhttp::zrouter
     void Router::register_callback(const std::string &path, const HttpRequest::Method &method,
                                    Router::HandlerCallback callback)
     {
-        Router::RouteKey key{method, path};
+        const Router::RouteKey key{method, path};
         callbacks_[key] = std::move(callback);
     }
 
@@ -39,19 +39,17 @@ namespace zhttp::zrouter
     // 路由处理
     bool Router::route(const HttpRequest &request, HttpResponse *response)
     {
-        Router::RouteKey key{request.get_method(), request.get_path()};
+        const Router::RouteKey key{request.get_method(), request.get_path()};
 
         // 1.查找处理器
-        auto it = handlers_.find(key);
-        if (it != handlers_.end())
+        if (const auto it = handlers_.find(key); it != handlers_.end())
         {
             it->second->handle_request(request, response);
             return true;
         }
 
         // 2.查找回调函数
-        auto it_callback = callbacks_.find(key);
-        if (it_callback != callbacks_.end())
+        if (const auto it_callback = callbacks_.find(key); it_callback != callbacks_.end())
         {
             it_callback->second(request, response);
             return true;
@@ -60,8 +58,7 @@ namespace zhttp::zrouter
         // 3.查找正则表达式处理器
         for (const auto &[regex_path, method, handler]: regex_handlers_)
         {
-            std::smatch match;
-            if (std::regex_match(request.get_path(), match, regex_path) && method == request.get_method())
+            if (std::smatch match; std::regex_match(request.get_path(), match, regex_path) && method == request.get_method())
             {
                 // 提取路径参数
                 HttpRequest new_request = request;
@@ -74,8 +71,7 @@ namespace zhttp::zrouter
         // 4.查找正则表达式回调函数
         for (const auto &[regex_path, method, callback]: regex_callbacks_)
         {
-            std::smatch match;
-            if (std::regex_match(request.get_path(), match, regex_path) && method == request.get_method())
+            if (std::smatch match; std::regex_match(request.get_path(), match, regex_path) && method == request.get_method())
             {
                 // 提取路径参数
                 HttpRequest new_request = request;
@@ -93,7 +89,7 @@ namespace zhttp::zrouter
     //可匹配的路径示例：/users/123/posts/456
     std::regex Router::convert_to_regex(const std::string &path)
     {
-        std::string regex_pattern = "^" + std::regex_replace(path,
+        const std::string regex_pattern = "^" + std::regex_replace(path,
                                                              std::regex(R"(/:([^/]+))"),
                                                              R"(/([^/]+))") + "$";
         return std::regex(regex_pattern);

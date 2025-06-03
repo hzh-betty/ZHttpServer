@@ -91,19 +91,19 @@ namespace zhttp::zmiddleware
     }
 
     // 处理预检请求
-    void CorsMiddleware::handle_preflight_request(HttpRequest &req, HttpResponse &res)
+    void CorsMiddleware::handle_preflight_request(const HttpRequest &request, HttpResponse &response)
     {
-        const auto origin = req.get_header("Origin");
+        const auto origin = request.get_header("Origin");
         if (!is_origin_allowed(origin))
         {
             LOG_WARN << "CORS preflight blocked for origin: " << origin;
-            res.set_response_line(req.get_version(),
+            response.set_response_line(request.get_version(),
                                   HttpResponse::StatusCode::Forbidden,
                                   "Forbidden");
             return;
         }
-        add_cors_headers(res, origin);
-        res.set_response_line(req.get_version(),
+        add_cors_headers(response, origin);
+        response.set_response_line(request.get_version(),
                               HttpResponse::StatusCode::NoContent,
                               "No Content");
         LOG_INFO << "CORS preflight OK for origin: " << origin;

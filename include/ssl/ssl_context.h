@@ -17,16 +17,16 @@ namespace zhttp::zssl
         // 初始化
         bool init();
 
-        SSL_CTX *get_context();
+        SSL_CTX *get_context() const;
     private:
         // 加载证书
-        bool load_certificate();
+        bool load_certificate() const;
 
         // 设置协议
-        bool setup_protocal();
+        bool setup_protocal() const;
 
         // 设置会话缓冲
-        void setup_session_cache();
+        void setup_session_cache() const;
 
         static void handle_error(std::string_view msg);
     private:

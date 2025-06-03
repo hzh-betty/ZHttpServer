@@ -124,7 +124,7 @@ namespace zhttp::zssl
 
     void SslConnection::handle_handshake()
     {
-        int ret = SSL_do_handshake(ssl_);
+        const int ret = SSL_do_handshake(ssl_);
         if (ret == 1)
         {
             state_ = SslState::ESTABLISHED;
@@ -145,8 +145,7 @@ namespace zhttp::zssl
             return;
         }
 
-        int err = SSL_get_error(ssl_, ret);
-        if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ)
+        if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ)
         {
             // 还有握手数据要发
             drain_write_bio();
@@ -154,7 +153,7 @@ namespace zhttp::zssl
         }
 
         // 握手失败
-        unsigned long ecode = ERR_get_error();
+        const unsigned long ecode = ERR_get_error();
         char err_buf[256];
         ERR_error_string_n(ecode, err_buf, sizeof(err_buf));
         LOG_ERROR << "SSL handshake failed: " << err_buf;
@@ -167,8 +166,7 @@ namespace zhttp::zssl
         char buf[4096];
         while (int pend = BIO_pending(write_bio_))
         {
-            int n = BIO_read(write_bio_, buf, std::min(pend, static_cast<int>(sizeof(buf))));
-            if (n > 0)
+            if (const int n = BIO_read(write_bio_, buf, std::min(pend, static_cast<int>(sizeof(buf)))); n > 0)
             {
                 write_buffer_.append(buf, n);
                 connection_->send(&write_buffer_);
@@ -178,12 +176,11 @@ namespace zhttp::zssl
     }
 
     // 加密数据
-    void SslConnection::on_encrypted(const void *data, size_t len)
+    void SslConnection::on_encrypted(const void *data, size_t len) const
     {
-        int written = SSL_write(ssl_, data, (int) len);
-        if (written <= 0)
+        if (const int written = SSL_write(ssl_, data, static_cast<int>(len)); written <= 0)
         {
-            int err = SSL_get_error(ssl_, written);
+            const int err = SSL_get_error(ssl_, written);
             LOG_ERROR << "SSL_write failed: " << ERR_error_string(err, nullptr);
             return;
         }
@@ -196,14 +193,13 @@ namespace zhttp::zssl
         char plain[4096];
         while (true)
         {
-            int ret = SSL_read(ssl_, plain, sizeof(plain));
+            const int ret = SSL_read(ssl_, plain, sizeof(plain));
             if (ret > 0)
             {
                 decrypted_buffer_.append(plain, ret);
                 continue;
             }
-            int err = SSL_get_error(ssl_, ret);
-            if (err == SSL_ERROR_WANT_READ)
+            if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_READ)
             {
                 // 明文读完，等待新的密文
                 break;
@@ -216,10 +212,9 @@ namespace zhttp::zssl
 
     }
 
-    SslError SslConnection::get_last_error(int ret)
+    SslError SslConnection::get_last_error(const int ret) const
     {
-        int err = SSL_get_error(ssl_, ret);
-        switch (err)
+        switch (SSL_get_error(ssl_, ret))
         {
             case SSL_ERROR_NONE:
                 return SslError::NONE;
@@ -258,7 +253,7 @@ namespace zhttp::zssl
 
     int SslConnection::bio_write(BIO *bio, const char *data, int len)
     {
-        auto *conn = static_cast<SslConnection *>(BIO_get_data(bio));
+        const auto *conn = static_cast<SslConnection *>(BIO_get_data(bio));
         if (!conn) return -1;
 
         conn->connection_->send(data, len);
@@ -270,13 +265,13 @@ namespace zhttp::zssl
         auto *conn = static_cast<SslConnection *>(BIO_get_data(bio));
         if (!conn) return -1;
 
-        size_t readable = conn->read_buffer_.readableBytes();
+        const size_t readable = conn->read_buffer_.readableBytes();
         if (readable == 0)
         {
             return -1;  // 无数据可读
         }
 
-        size_t to_read = std::min(static_cast<size_t>(len), readable);
+        const size_t to_read = std::min(static_cast<size_t>(len), readable);
         memcpy(data, conn->read_buffer_.peek(), to_read);
         conn->read_buffer_.retrieve(to_read);
         return static_cast<int>(to_read);

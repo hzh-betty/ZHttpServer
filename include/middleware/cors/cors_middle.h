@@ -27,7 +27,7 @@ namespace zhttp::zmiddleware
         bool is_origin_allowed(const std::string&origin);
 
         // 处理预检请求
-        void handle_preflight_request(HttpRequest& request, HttpResponse& response) ;
+        void handle_preflight_request(const HttpRequest& request, HttpResponse& response) ;
 
         // 添加CORS头部
         void add_cors_headers(HttpResponse& response,const std::string & origin) const;

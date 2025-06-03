@@ -8,15 +8,15 @@ namespace zhttp
                            const std::string &name,
                            bool use_ssl,
                            muduo::net::TcpServer::Option option)
-            : is_ssl_(use_ssl)
+        : is_ssl_(use_ssl)
     {
         init(port, name, option);
     }
 
     // 启动线程数
-    void HttpServer::set_thread_num(uint32_t num)
+    void HttpServer::set_thread_num(const uint32_t num) const
     {
-        server_->setThreadNum((int) num);
+        server_->setThreadNum(static_cast<int>(num));
     }
 
     // 启动
@@ -32,96 +32,96 @@ namespace zhttp
     }
 
     // 注册静态路由回调
-    void HttpServer::Get(const std::string &path, const HttpCallback &cb)
+    void HttpServer::Get(const std::string &path, const HttpCallback &cb) const
     {
         router_->register_callback(path, HttpRequest::Method::GET, cb);
     }
 
-    void HttpServer::Get(const std::string &path, zrouter::Router::HandlerPtr handler)
+    void HttpServer::Get(const std::string &path, zrouter::Router::HandlerPtr handler) const
     {
         router_->register_handler(path, HttpRequest::Method::GET, std::move(handler));
     }
 
-    void HttpServer::Post(const std::string &path, const HttpCallback &cb)
+    void HttpServer::Post(const std::string &path, const HttpCallback &cb) const
     {
         router_->register_callback(path, HttpRequest::Method::POST, cb);
     }
 
-    void HttpServer::Post(const std::string &path, zrouter::Router::HandlerPtr handler)
+    void HttpServer::Post(const std::string &path, zrouter::Router::HandlerPtr handler) const
     {
         router_->register_handler(path, HttpRequest::Method::POST, std::move(handler));
     }
 
     // PUT 方法实现
-    void HttpServer::Put(const std::string &path, const HttpCallback &cb)
+    void HttpServer::Put(const std::string &path, const HttpCallback &cb) const
     {
         router_->register_callback(path, HttpRequest::Method::PUT, cb);
     }
 
-    void HttpServer::Put(const std::string &path, zrouter::Router::HandlerPtr handler)
+    void HttpServer::Put(const std::string &path, zrouter::Router::HandlerPtr handler) const
     {
         router_->register_handler(path, HttpRequest::Method::PUT, std::move(handler));
     }
 
     // DELETE 方法实现
-    void HttpServer::Delete(const std::string &path, const HttpCallback &cb)
+    void HttpServer::Delete(const std::string &path, const HttpCallback &cb) const
     {
         router_->register_callback(path, HttpRequest::Method::DELETE, cb);
     }
 
-    void HttpServer::Delete(const std::string &path, zrouter::Router::HandlerPtr handler)
+    void HttpServer::Delete(const std::string &path, zrouter::Router::HandlerPtr handler) const
     {
         router_->register_handler(path, HttpRequest::Method::DELETE, std::move(handler));
     }
 
     // PATCH 方法实现
-    void HttpServer::Patch(const std::string &path, const HttpCallback &cb)
+    void HttpServer::Patch(const std::string &path, const HttpCallback &cb) const
     {
         router_->register_callback(path, HttpRequest::Method::PATCH, cb);
     }
 
-    void HttpServer::Patch(const std::string &path, zrouter::Router::HandlerPtr handler)
+    void HttpServer::Patch(const std::string &path, zrouter::Router::HandlerPtr handler) const
     {
         router_->register_handler(path, HttpRequest::Method::PATCH, std::move(handler));
     }
 
     // HEAD 方法实现
-    void HttpServer::Head(const std::string &path, const HttpCallback &cb)
+    void HttpServer::Head(const std::string &path, const HttpCallback &cb) const
     {
         router_->register_callback(path, HttpRequest::Method::HEAD, cb);
     }
 
-    void HttpServer::Head(const std::string &path, zrouter::Router::HandlerPtr handler)
+    void HttpServer::Head(const std::string &path, zrouter::Router::HandlerPtr handler) const
     {
         router_->register_handler(path, HttpRequest::Method::HEAD, std::move(handler));
     }
 
     // OPTIONS 方法实现
-    void HttpServer::Options(const HttpCallback &cb)
+    void HttpServer::Options(const HttpCallback &cb) const
     {
         router_->register_callback(options_path_, HttpRequest::Method::OPTIONS, cb);
     }
 
-    void HttpServer::Options(zrouter::Router::HandlerPtr handler)
+    void HttpServer::Options(zrouter::Router::HandlerPtr handler) const
     {
         router_->register_handler(options_path_, HttpRequest::Method::OPTIONS, std::move(handler));
     }
 
 
     // 注册动态路由回调
-    void HttpServer::add_regex_route(HttpRequest::Method method, const std::string &path, const HttpCallback &cb)
+    void HttpServer::add_regex_route(HttpRequest::Method method, const std::string &path, const HttpCallback &cb) const
     {
         router_->register_regex_callback(path, method, cb);
     }
 
     void HttpServer::add_regex_route(HttpRequest::Method method, const std::string &path,
-                                     zrouter::Router::HandlerPtr handler)
+                                     zrouter::Router::HandlerPtr handler) const
     {
         router_->register_regex_handler(path, method, std::move(handler));
     }
 
     // 添加中间件
-    void HttpServer::add_middleware(std::shared_ptr<zmiddleware::Middleware> middleware)
+    void HttpServer::add_middleware(std::shared_ptr<zmiddleware::Middleware> middleware) const
     {
         middleware_chain_->add_middleware(std::move(middleware));
     }
@@ -146,21 +146,21 @@ namespace zhttp
         server_->setConnectionCallback([this](auto &&PH1) { on_connection(std::forward<decltype(PH1)>(PH1)); });
         server_->setMessageCallback([this](auto &&PH1,
                                            auto &&PH2, auto &&PH3)
-                                    {
-                                        on_message(std::forward<decltype(PH1)>(PH1),
-                                                   std::forward<decltype(PH2)>(PH2),
-                                                   std::forward<decltype(PH3)>(PH3));
-                                    });
+        {
+            on_message(std::forward<decltype(PH1)>(PH1),
+                       std::forward<decltype(PH2)>(PH2),
+                       std::forward<decltype(PH3)>(PH3));
+        });
 
         // 注册默认OPTIONS回调
-        HttpCallback default_options_callback = [&](const zhttp::HttpRequest& req, zhttp::HttpResponse* res)
+        const HttpCallback default_options_callback = [&](const zhttp::HttpRequest &req, zhttp::HttpResponse *res)
         {
             res->set_response_line(req.get_version(),
                                    HttpResponse::StatusCode::NoContent, "No Content");
             res->set_header("Allow", "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS");
         };
         router_->register_callback(options_path_,
-                                   HttpRequest::Method::OPTIONS,default_options_callback);
+                                   HttpRequest::Method::OPTIONS, default_options_callback);
         LOG_INFO << "HttpServer init successfully";
     }
 
@@ -192,11 +192,11 @@ namespace zhttp
                                                                             ssl_context_.get());
                 ssl_connection->set_message_callback([this](auto &&PH1,
                                                             auto &&PH2, auto &&PH3)
-                                                     {
-                                                         on_message(std::forward<decltype(PH1)>(PH1),
-                                                                    std::forward<decltype(PH2)>(PH2),
-                                                                    std::forward<decltype(PH3)>(PH3));
-                                                     });
+                {
+                    on_message(std::forward<decltype(PH1)>(PH1),
+                               std::forward<decltype(PH2)>(PH2),
+                               std::forward<decltype(PH3)>(PH3));
+                });
                 ssl_connections_[conn] = std::move(ssl_connection);
                 ssl_connections_[conn]->handshake();
             }
@@ -226,7 +226,7 @@ namespace zhttp
         {
             // 解析失败
             LOG_ERROR << "parse request failed";
-            std::string response = "HTTP/1.1 400 Bad Request\r\n\r\n";
+            const std::string response = "HTTP/1.1 400 Bad Request\r\n\r\n";
             muduo::net::Buffer output;
             output.append(response);
             send(conn, output);
@@ -246,12 +246,12 @@ namespace zhttp
 
     // 得到一个完整的HTTP请求后的回调处理
     void HttpServer::on_request(const muduo::net::TcpConnectionPtr &conn,
-                                zhttp::HttpRequest &request)
+                                const zhttp::HttpRequest &request)
     {
         const std::string &connection = request.get_header("Connection");
         // 判断是否需要关闭连接
-        bool close = connection == "close" ||
-                     (request.get_version() == "1.0" && connection != "keep-alive");
+        const bool close = connection == "close" ||
+                           (request.get_version() == "1.0" && connection != "keep-alive");
 
         HttpResponse response;
         response.set_keep_alive(!close);
@@ -278,7 +278,7 @@ namespace zhttp
 
     // 中间件-路由-中间件处理
     void HttpServer::handle_request(const zhttp::HttpRequest &request,
-                                    zhttp::HttpResponse *response)
+                                    zhttp::HttpResponse *response) const
     {
         try
         {
@@ -287,7 +287,7 @@ namespace zhttp
             middleware_chain_->process_before(req);
 
             // 特殊处理 OPTIONS 请求
-            if(req.get_method() == HttpRequest::Method::OPTIONS)
+            if (req.get_method() == HttpRequest::Method::OPTIONS)
             {
                 req.set_path(options_path_);
             }
@@ -305,8 +305,7 @@ namespace zhttp
             middleware_chain_->process_after(*response);
 
             LOG_INFO << "HttpServer middleware-route-middleware successfully";
-        }
-        catch (const HttpResponse &req)
+        } catch (const HttpResponse &req)
         {
             // 处理中间件抛出的响应（如CORS预检请求）
             *response = req;
@@ -327,7 +326,13 @@ namespace zhttp
     // 向客户端发送数据
     void HttpServer::send(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer &output)
     {
-        if (is_ssl_)
+        if (!conn->connected())
+        {
+            LOG_WARN << "Connection not active, skip sending";
+            return;
+        }
+
+        if (is_ssl_ && ssl_connections_.count(conn))
         {
             ssl_connections_[conn]->send(output.toStringPiece().data(), output.readableBytes());
         }
@@ -337,5 +342,4 @@ namespace zhttp
         }
         LOG_INFO << "HttpServer send successfully";
     }
-
 } // namespace zhttp

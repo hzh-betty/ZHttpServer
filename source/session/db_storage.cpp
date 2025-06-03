@@ -8,7 +8,7 @@ namespace zhttp::zsession
     void DbSessionStorage::store(const std::shared_ptr<Session> &session)
     {
         const auto conn = pool_.get_connection();
-        nlohmann::json j = session->get_attributes_json();
+        const nlohmann::json j = session->get_attributes_json();
         std::string attrs = j.dump();
         int64_t expiry = std::chrono::duration_cast<std::chrono::seconds>(
             session->get_expiry_time().time_since_epoch()).count();

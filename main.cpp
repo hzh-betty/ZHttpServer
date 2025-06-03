@@ -23,8 +23,8 @@ int main()
         }
 
         // 设置证书文件（使用绝对路径）
-        std::string certFile = "/home/betty/server.crt";
-        std::string keyFile = "/home/betty/server.key";
+        const std::string certFile = "/home/betty/ssl/server.crt";
+        const std::string keyFile = "/home/betty/ssl/server.key";
 
         LOG_INFO << "Loading certificate from: " << certFile;
         LOG_INFO << "Loading private key from: " << keyFile;

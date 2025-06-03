@@ -51,8 +51,7 @@ namespace zhttp
 
     std::string HttpRequest::get_path_parameters(const std::string &key) const
     {
-        auto it = path_parameters_.find(key);
-        if (it != path_parameters_.end())
+        if (const auto it = path_parameters_.find(key); it != path_parameters_.end())
         {
             return it->second;
         }
@@ -69,7 +68,7 @@ namespace zhttp
         size_t pos = 0;
         while (pos < str.size())
         {
-            size_t equal_pos = str.find('=', pos);
+            const size_t equal_pos = str.find('=', pos);
             if (equal_pos == std::string_view::npos)
                 break;
 
@@ -78,7 +77,7 @@ namespace zhttp
                 amp_pos = str.size();
 
             std::string key(str.substr(pos, equal_pos - pos));
-            std::string value(str.substr(equal_pos + 1, amp_pos - equal_pos - 1));
+            const std::string value(str.substr(equal_pos + 1, amp_pos - equal_pos - 1));
             query_parameters_[key] = value;
 
             pos = amp_pos + 1;
@@ -89,8 +88,7 @@ namespace zhttp
 
     std::string HttpRequest::get_query_parameters(const std::string &key) const
     {
-        auto it = query_parameters_.find(key);
-        if (it != query_parameters_.end())
+        if (const auto it = query_parameters_.find(key); it != query_parameters_.end())
         {
             return it->second;
         }
@@ -119,7 +117,7 @@ namespace zhttp
         {
             --pos1;
         }
-        std::string_view key_view = key.substr(0, pos1 + 1);
+        const std::string_view key_view = key.substr(0, pos1 + 1);
 
         size_t pos2 = 0;
         while(isspace(value[pos2]) && pos2 < value.size())
@@ -133,8 +131,7 @@ namespace zhttp
 
     std::string HttpRequest::get_header(const std::string &key) const
     {
-        auto it = headers_.find(key);
-        if (it != headers_.end())
+        if (const auto it = headers_.find(key); it != headers_.end())
         {
             return it->second;
         }
@@ -154,7 +151,7 @@ namespace zhttp
     }
 
 
-// 设置与获取请求体长度
+    // 设置与获取请求体长度
     void HttpRequest::set_content_length(uint64_t length)
     {
         content_length_ = length;

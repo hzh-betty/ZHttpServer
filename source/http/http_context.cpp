@@ -12,8 +12,7 @@ namespace zhttp
         while (loop)
         {
             // 查找\r\n
-            const char *crlf = buffer->findCRLF();
-            if (crlf)
+            if (const char *crlf = buffer->findCRLF())
             {
                 std::string_view line(buffer->peek(), crlf - buffer->peek());// 获取一行数据
                 buffer->retrieveUntil(crlf + 2);//标记为已读
@@ -55,13 +54,12 @@ namespace zhttp
         // 解析方法、路径、协议版本
 
         // 1. 查找空格并设置请求方法
-        size_t pos = line.find(' ');
+        const size_t pos = line.find(' ');
 
         if (pos == std::string_view::npos)
             return false;
-        std::string_view method = line.substr(0, pos);
 
-        if (method == "GET")
+        if (const std::string_view method = line.substr(0, pos); method == "GET")
             request_.set_method(HttpRequest::Method::GET);
         else if (method == "POST")
             request_.set_method(HttpRequest::Method::POST);
@@ -81,8 +79,8 @@ namespace zhttp
         // 2. 解析请求路径，包括请求带有参数
         // 例如：GET /api?page=2&size=10 HTTP/1.1
 
-        size_t pos1 = line.find('?');
-        size_t pos2 = line.find(' ', pos + 1);//第二个空格
+        const size_t pos1 = line.find('?');
+        const size_t pos2 = line.find(' ', pos + 1);//第二个空格
         if (pos2 == std::string_view::npos)
             return false;
 
@@ -103,8 +101,7 @@ namespace zhttp
         }
 
         // 3. 解析协议版本
-        std::string_view version = line.substr(pos2 + 1);
-        if (version == "HTTP/1.0")
+        if (const std::string_view version = line.substr(pos2 + 1); version == "HTTP/1.0")
             request_.set_version("HTTP/1.0");
         else if (version == "HTTP/1.1")
             request_.set_version("HTTP/1.1");
@@ -125,12 +122,12 @@ namespace zhttp
         // 查找到一个报头
         if (colon != std::string_view::npos)
         {
-            std::string_view first = line.substr(0, colon);
-            std::string_view second = line.substr(colon + 1);
+            const std::string_view first = line.substr(0, colon);
+            const std::string_view second = line.substr(colon + 1);
             request_.set_header(first, second);
             return true;
         }
-            // 解析到空行，表示请求头结束
+        // 解析到空行，表示请求头结束
         else if (line.empty())
         {
             if (!request_.get_header("Content-Length").empty())
@@ -157,7 +154,7 @@ namespace zhttp
         // 如果请求体长度为0，或者buffer数据足够
         if (buffer->readableBytes() >= request_.get_content_length())
         {
-            std::string_view content(buffer->peek(), request_.get_content_length());
+            const std::string_view content(buffer->peek(), request_.get_content_length());
             request_.set_content(content);
             buffer->retrieve(request_.get_content_length());
             state_ = HttpRequestParseState::ExpectComplete;

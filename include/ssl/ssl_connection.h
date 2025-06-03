@@ -48,11 +48,11 @@ namespace zhttp::zssl
         void handle_handshake();
 
         // 加密解密处理
-        void on_encrypted(const void *data, size_t len);
+        void on_encrypted(const void *data, size_t len) const;
         void on_decrypted();
 
         // 获取错误信息
-        SslError get_last_error(int ret);
+        SslError get_last_error(int ret) const;
 
         // 错误处理
         void handle_error(SslError error);

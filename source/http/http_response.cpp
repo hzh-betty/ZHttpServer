@@ -54,7 +54,7 @@ namespace zhttp
 
     std::string HttpResponse::get_header(const std::string &key) const
     {
-        auto it = headers_.find(key);
+        const auto it = headers_.find(key);
         if (it != headers_.end())
         {
             return it->second;
@@ -131,7 +131,7 @@ namespace zhttp
 
     std::string HttpResponse::to_http_date(const muduo::Timestamp &time)
     {
-        time_t seconds = time.secondsSinceEpoch();
+        const time_t seconds = time.secondsSinceEpoch();
         struct tm tm_time{};
         gmtime_r(&seconds, &tm_time);  // 使用 gmtime_r 确保线程安全
 

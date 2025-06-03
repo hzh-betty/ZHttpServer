@@ -59,13 +59,13 @@ namespace zhttp::zssl
         return true;
     }
 
-    SSL_CTX * SslContext::get_context()
+    SSL_CTX * SslContext::get_context() const
     {
         return m_ctx_;
     }
 
     // 加载证书
-    bool SslContext::load_certificate()
+    bool SslContext::load_certificate() const
     {
         // 加载证书
         if (SSL_CTX_use_certificate_file(m_ctx_,
@@ -105,7 +105,7 @@ namespace zhttp::zssl
     }
 
     // 设置协议
-    bool SslContext::setup_protocal()
+    bool SslContext::setup_protocal() const
     {
         // 设置 SSL/TLS 协议版本
         long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
@@ -141,7 +141,7 @@ namespace zhttp::zssl
     }
 
     // 设置会话缓冲
-    void SslContext::setup_session_cache()
+    void SslContext::setup_session_cache() const
     {
         SSL_CTX_set_session_cache_mode(m_ctx_, SSL_SESS_CACHE_SERVER);
         SSL_CTX_sess_set_cache_size(m_ctx_, config_.get_session_cache_size());

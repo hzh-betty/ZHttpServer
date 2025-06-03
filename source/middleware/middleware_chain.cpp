@@ -10,7 +10,7 @@ namespace zhttp::zmiddleware
     }
 
     // 处理请求中间件
-    void MiddlewareChain::process_before(HttpRequest &request)
+    void MiddlewareChain::process_before(HttpRequest &request) const
     {
         // 遍历中间件
         for (auto & middleware : middlewares_)

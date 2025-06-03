@@ -13,7 +13,7 @@ namespace zhttp::zmiddleware
         // 添加中间件
         void add_middleware(std::shared_ptr<Middleware>&& middleware);
 
-        void process_before(HttpRequest& request);
+        void process_before(HttpRequest& request) const;
 
         void process_after(HttpResponse& response);
     private:
