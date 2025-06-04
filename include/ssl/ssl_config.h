@@ -42,7 +42,6 @@ namespace zhttp::zssl
 
     private:
         SslConfig();
-
     private:
         std::string cert_file_path_{}; // 证书文件路径
         std::string key_file_path_{}; // 私钥文件路径

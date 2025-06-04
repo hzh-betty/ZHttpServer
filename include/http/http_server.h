@@ -1,18 +1,11 @@
 #pragma once
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include <functional>
 #include <memory>
 #include <unordered_map>
 
 #include <muduo/net/TcpServer.h>
 #include <muduo/net/EventLoop.h>
-#include <muduo/base/Logging.h>
 
-#include "http_context.h"
 #include "http_request.h"
 #include "http_response.h"
 #include "../middleware/middleware_chain.h"

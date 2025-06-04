@@ -2,7 +2,6 @@
 
 #include "ssl_config.h"
 #include <openssl/ssl.h>
-#include <memory>
 #include <string_view>
 
 namespace zhttp::zssl
@@ -17,13 +16,13 @@ namespace zhttp::zssl
         // 初始化
         bool init();
 
-        SSL_CTX *get_context() const;
+        [[nodiscard]] SSL_CTX *get_context() const;
     private:
         // 加载证书
-        bool load_certificate() const;
+        [[nodiscard]] bool load_certificate() const;
 
         // 设置协议
-        bool setup_protocal() const;
+        [[nodiscard]] bool setup_protocal() const;
 
         // 设置会话缓冲
         void setup_session_cache() const;

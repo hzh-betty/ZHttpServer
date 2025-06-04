@@ -5,7 +5,7 @@
 
 namespace zhttp::zsession
 {
-    TEST(StorageTest, StoreAndLoad)
+    TEST(MemoryStorageTest, StoreAndLoad)
     {
         InMemoryStorage storage;
         auto session = std::make_shared<Session>("sid1");
@@ -17,7 +17,7 @@ namespace zhttp::zsession
         EXPECT_EQ(loaded->get_attribute("k"), "v");
     }
 
-    TEST(StorageTest, RemoveSession)
+    TEST(MemoryStorageTest, RemoveSession)
     {
         InMemoryStorage storage;
         auto session = std::make_shared<Session>("sid2");
@@ -26,7 +26,7 @@ namespace zhttp::zsession
         EXPECT_EQ(storage.load("sid2"), nullptr);
     }
 
-    TEST(StorageTest, ClearExpired)
+    TEST(MemoryStorageTest, ClearExpired)
     {
         InMemoryStorage storage;
         auto session = std::make_shared<Session>("sid3", 1);

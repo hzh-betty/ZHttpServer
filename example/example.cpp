@@ -1,7 +1,6 @@
 #include <muduo/base/Logging.h>
-#include "include/http/http_server.h"
-#include "include/ssl/ssl_config.h"
-#include "include/middleware/cors/cors_middle.h"
+#include "../include/http/http_server.h"
+#include "../include/middleware/cors/cors_middle.h"
 
 int main()
 {
@@ -11,7 +10,7 @@ int main()
     try
     {
         // 创建服务器实例
-        auto serverPtr = std::make_unique<zhttp::HttpServer>(443, "HTTPServer", true);
+        auto serverPtr = std::make_unique<zhttp::HttpServer>(8090, "HTTPServer", true);
         // 加载 SSL 配置
         auto &sslConfig = zhttp::zssl::SslConfig::get_instance();
 
@@ -61,7 +60,7 @@ int main()
         {
             resp->set_response_line(req.get_version(),
                                     zhttp::HttpResponse::StatusCode::Created, "Created");
-            resp->set_header("Location","https://example.com");
+            resp->set_header("Location", "https://example.com");
             resp->set_content_type("application/json");
             resp->set_body(R"({"message":"POST request processed"})");
         });
@@ -103,22 +102,21 @@ int main()
 
         // OPTIONS请求（已默认注册，可自定义）
         serverPtr->Options([](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
-                           {
-                               resp->set_response_line(req.get_version(),
-                                                       zhttp::HttpResponse::StatusCode::OK, "OK");
-                               resp->set_header("Allow", "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS");
-                               resp->set_content_type("text/plain");
-                               resp->set_body("Supported methods");
-                           });
+        {
+            resp->set_response_line(req.get_version(),
+                                    zhttp::HttpResponse::StatusCode::OK, "OK");
+            resp->set_header("Allow", "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS");
+            resp->set_content_type("text/plain");
+            resp->set_body("Supported methods");
+        });
 
         serverPtr->add_middleware(std::make_shared<zhttp::zmiddleware::CorsMiddleware>
-                                          (zhttp::zmiddleware::CorsConfig::default_config()));
+            (zhttp::zmiddleware::CorsConfig::default_config()));
 
         // 启动服务器
         LOG_INFO << "Server starting on port 443...";
         serverPtr->start();
-    }
-    catch (const std::exception &e)
+    } catch (const std::exception &e)
     {
         LOG_FATAL << "Server start failed: " << e.what();
         return 1;

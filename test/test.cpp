@@ -7,6 +7,7 @@
 #include "session/test_session.h"
 #include "session/test_memory_storage.h"
 #include "session/test_session_manager.h"
+#include "session/test_db_storage.h"
 
 #include "middleware/test_middleware_chain.h"
 #include "middleware/test_cors_middle.h"
@@ -15,8 +16,7 @@
 #include "db_pool/test_db_pool.h"
 
 #include "ssl/test_ssl_config.h"
-#include "ssl/test_ssl_context.h"
-#include "ssl/test_ssl_connection.h"
+
 int main()
 {
     ::testing::InitGoogleTest();

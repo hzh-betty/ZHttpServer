@@ -1,3 +1,4 @@
+#pragma once
 #include "db_connection.h"
 #include <queue>
 #include <condition_variable>

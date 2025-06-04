@@ -62,7 +62,7 @@ namespace zhttp
         void set_content_length(uint64_t length);
         uint64_t get_content_length() const;
 
-        void swap(HttpRequest&other);
+        void swap(HttpRequest&other) noexcept;
     private:
         Method method_ = Method::Invalid;// 请求方法
         std::string path_;// 请求路径

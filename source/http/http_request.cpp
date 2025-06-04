@@ -163,7 +163,7 @@ namespace zhttp
         return content_length_;
     }
 
-    void HttpRequest::swap(HttpRequest &other)
+    void HttpRequest::swap(HttpRequest &other) noexcept
     {
         std::swap(method_, other.method_);
         std::swap(path_, other.path_);

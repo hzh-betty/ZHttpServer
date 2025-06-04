@@ -25,7 +25,7 @@ namespace zhttp::zssl
         void send(const void *data, size_t len);
 
         // 读取数据
-        void on_read(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer *buf, muduo::Timestamp time);
+        void on_read(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer *buf, const muduo::Timestamp &time);
 
         // 判断握手是否完成
         [[nodiscard]] bool is_handshake_completed() const;
@@ -52,7 +52,7 @@ namespace zhttp::zssl
         void on_decrypted();
 
         // 获取错误信息
-        SslError get_last_error(int ret) const;
+        [[nodiscard]] SslError get_last_error(int ret) const;
 
         // 错误处理
         void handle_error(SslError error);

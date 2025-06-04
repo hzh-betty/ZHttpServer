@@ -17,9 +17,9 @@ namespace zhttp::zssl
     }
 
     SslConnection::SslConnection(muduo::net::TcpConnectionPtr conn, SslContext *ctx)
-            : ssl_(nullptr), context_(ctx), connection_(std::move(conn)), state_(SslState::HANDSHAKE),
-              read_bio_(nullptr),
-              write_bio_(nullptr), message_callback_(nullptr)
+        : ssl_(nullptr), context_(ctx), connection_(std::move(conn)), state_(SslState::HANDSHAKE),
+          read_bio_(nullptr),
+          write_bio_(nullptr), message_callback_(nullptr)
     {
         // 创建 SSL 对象
         ssl_ = SSL_new(context_->get_context());
@@ -43,7 +43,7 @@ namespace zhttp::zssl
 
         // 设置 BIO
         SSL_set_bio(ssl_, read_bio_, write_bio_);
-        SSL_set_accept_state(ssl_);  // 设置为服务器模式
+        SSL_set_accept_state(ssl_); // 设置为服务器模式
 
         // 设置非阻塞 IO
         SSL_set_mode(ssl_, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
@@ -51,11 +51,11 @@ namespace zhttp::zssl
 
         // 收到数据时，调用此回调
         connection_->setMessageCallback(
-                [this](auto &&PH1, auto &&PH2, auto &&PH3)
-                {
-                    on_read(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2),
-                            std::forward<decltype(PH3)>(PH3));
-                });
+            [this](auto &&PH1, auto &&PH2, auto &&PH3)
+            {
+                on_read(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2),
+                        std::forward<decltype(PH3)>(PH3));
+            });
 
         LOG_INFO << "SSL connection created";
     }
@@ -64,7 +64,7 @@ namespace zhttp::zssl
     {
         if (ssl_)
         {
-            SSL_free(ssl_);  // 这会同时释放 BIO
+            SSL_free(ssl_); // 这会同时释放 BIO
         }
     }
 
@@ -92,13 +92,12 @@ namespace zhttp::zssl
     }
 
     void SslConnection::on_read(const muduo::net::TcpConnectionPtr &conn, muduo::net::Buffer *buf,
-                                muduo::Timestamp time)
+                                const muduo::Timestamp &time)
     {
         // 1. 写入所有接收到的加密数据到读 BIO
         receive_time_ = time;
 
-        int n = static_cast<int>(buf->readableBytes());
-        if (n > 0)
+        if (const int n = static_cast<int>(buf->readableBytes()); n > 0)
         {
             BIO_write(read_bio_, buf->peek(), n);
             buf->retrieve(n);
@@ -209,7 +208,6 @@ namespace zhttp::zssl
             break;
         }
         LOG_INFO << "Decrypted data successfully";
-
     }
 
     SslError SslConnection::get_last_error(const int ret) const
@@ -268,7 +266,7 @@ namespace zhttp::zssl
         const size_t readable = conn->read_buffer_.readableBytes();
         if (readable == 0)
         {
-            return -1;  // 无数据可读
+            return -1; // 无数据可读
         }
 
         const size_t to_read = std::min(static_cast<size_t>(len), readable);

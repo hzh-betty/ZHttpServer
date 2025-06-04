@@ -5,9 +5,8 @@
 namespace zhttp::zssl
 {
     SslContext::SslContext()
-            : m_ctx_(nullptr)
+        : m_ctx_(nullptr)
     {
-
     }
 
     SslContext::~SslContext()
@@ -35,20 +34,22 @@ namespace zhttp::zssl
         }
 
         // 设置SSL选项
-        long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
-                       SSL_OP_NO_COMPRESSION |
-                       SSL_OP_CIPHER_SERVER_PREFERENCE;
+        constexpr long options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
+                                 SSL_OP_NO_COMPRESSION |
+                                 SSL_OP_CIPHER_SERVER_PREFERENCE;
         SSL_CTX_set_options(m_ctx_, options);
 
         // 加载证书与私钥
-        if(!load_certificate())
+        if (!load_certificate())
         {
-           return false;
+            LOG_ERROR << "Failed to load certificate";
+            return false;
         }
 
         // 设置协议版本
-        if(!setup_protocal())
+        if (!setup_protocal())
         {
+            LOG_ERROR << "Failed to set protocol version";
             return false;
         }
 
@@ -59,7 +60,7 @@ namespace zhttp::zssl
         return true;
     }
 
-    SSL_CTX * SslContext::get_context() const
+    SSL_CTX *SslContext::get_context() const
     {
         return m_ctx_;
     }
@@ -154,5 +155,4 @@ namespace zhttp::zssl
         ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
         LOG_ERROR << msg.data() << ": " << buf;
     }
-
 } // namespace zhttp::zssl
