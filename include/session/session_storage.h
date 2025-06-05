@@ -20,4 +20,13 @@ namespace zhttp::zsession
         virtual void clear_expired() = 0; // 清除过期会话
     };
 
+    // 简单工厂模式
+    template<typename StorgeType, typename... Args>
+    class StorageFactory
+    {
+        static std::shared_ptr<Storage> create(Args &&... args)
+        {
+            return std::make_shared<StorgeType>(std::forward<Args>(args)...);
+        }
+    };
 } // namespace zhttp::zsession

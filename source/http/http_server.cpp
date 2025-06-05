@@ -21,12 +21,12 @@ namespace zhttp
     }
 
     // 启动
-    void HttpServer::start()
+    void HttpServer::start() const
     {
         LOG_INFO << "HttpServer[" << server_->name() << "] starts listening on " << server_->ipPort();
         if (is_ssl_)
         {
-            set_ssl_context();
+            //set_ssl_context();
         }
         server_->start();
         main_loop_->loop();
@@ -168,15 +168,12 @@ namespace zhttp
     // 设置SSL上下文
     void HttpServer::set_ssl_context()
     {
-        if (is_ssl_)
+        //  创建SSL上下文
+        ssl_context_ = std::make_unique<zssl::SslContext>();
+        if (!ssl_context_->init())
         {
-            //  创建SSL上下文
-            ssl_context_ = std::make_unique<zssl::SslContext>();
-            if (!ssl_context_->init())
-            {
-                LOG_ERROR << "ssl context init failed";
-                abort();
-            }
+            LOG_ERROR << "ssl context init failed";
+            abort();
         }
     }
 
@@ -306,7 +303,8 @@ namespace zhttp
             middleware_chain_->process_after(*response);
 
             LOG_INFO << "HttpServer middleware-route-middleware successfully";
-        } catch (const HttpResponse &req)
+        }
+        catch (const HttpResponse &req)
         {
             // 处理中间件抛出的响应（如CORS预检请求）
             *response = req;

@@ -6,7 +6,7 @@
 
 namespace zhttp::zmiddleware
 {
-    class CorsMiddleware : public Middleware
+    class CorsMiddleware final : public Middleware
     {
     public:
         explicit CorsMiddleware(CorsConfig config = CorsConfig::default_config());

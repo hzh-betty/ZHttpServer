@@ -22,7 +22,7 @@ namespace zhttp::zdb
 
         // 初始化连接池
         void init(const std::string &host, const std::string &user,
-                  const std::string &password, const std::string &database,uint32_t pool_size = 10);
+                  const std::string &password, const std::string &database, uint32_t pool_size = 10);
 
         // 获取连接
         std::shared_ptr<DbConnection> get_connection();
@@ -38,12 +38,13 @@ namespace zhttp::zdb
 
         //  检查连接
         void check_connections() const;
+
     private:
         std::string host_;
         std::string user_;
         std::string password_;
         std::string database_;
-        std::queue<std::shared_ptr<DbConnection>> connections_;
+        std::queue<std::shared_ptr<DbConnection> > connections_;
         mutable std::mutex mutex_;
         std::condition_variable cv_;
         bool initialized_ = false;

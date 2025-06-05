@@ -10,8 +10,7 @@ namespace zhttp::zsession
     // 加载会话
     std::shared_ptr<Session> InMemoryStorage::load(const std::string &session_id)
     {
-        auto it = sessions_.find(session_id);
-        if (it != sessions_.end())
+        if (const auto it = sessions_.find(session_id); it != sessions_.end())
         {
             return it->second;
         }

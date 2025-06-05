@@ -9,43 +9,15 @@ int main()
 
     try
     {
-        // 创建服务器实例
-        auto serverPtr = std::make_unique<zhttp::HttpServer>(8090, "HTTPServer", true);
-        // 加载 SSL 配置
-        auto &sslConfig = zhttp::zssl::SslConfig::get_instance();
-
-        // 获取当前工作目录
-        char cwd[PATH_MAX];
-        if (getcwd(cwd, sizeof(cwd)) != nullptr)
-        {
-            LOG_INFO << "Current working directory: " << cwd;
-        }
-
-        // 设置证书文件（使用绝对路径）
-        const std::string certFile = "/home/betty/ssl/server.crt";
-        const std::string keyFile = "/home/betty/ssl/server.key";
-
-        LOG_INFO << "Loading certificate from: " << certFile;
-        LOG_INFO << "Loading private key from: " << keyFile;
-
-        sslConfig.set_cert_file_path(certFile);
-        sslConfig.set_key_file_path(keyFile);
-        sslConfig.set_version(zhttp::zssl::SslVersion::TLS_1_2);
-
-        // 验证文件是否可读
-        if (access(certFile.c_str(), R_OK) != 0)
-        {
-            LOG_FATAL << "Cannot read certificate file: " << certFile;
-            return 1;
-        }
-        if (access(keyFile.c_str(), R_OK) != 0)
-        {
-            LOG_FATAL << "Cannot read private key file: " << keyFile;
-            return 1;
-        }
-
-        // 设置线程数
-        serverPtr->set_thread_num(4);
+        const auto builder = std::make_unique<zhttp::HttpServerBuilder>();
+        builder->build_cert_file_path("/home/betty/ssl/server.crt");
+        builder->build_key_file_path("/home/betty/ssl/server.key");
+        builder->build_port(8080);
+        builder->build_name("HttpServer");
+        builder->build_use_ssl(true);
+        builder->build_thread_num(4);
+        builder->build_middleware(zhttp::zmiddleware::MiddlewareFactory::create<zhttp::zmiddleware::CorsMiddleware>());
+        auto serverPtr = builder->build();
 
         // 添加一个测试端点
         serverPtr->Get("/get", [](const zhttp::HttpRequest &req, zhttp::HttpResponse *resp)
@@ -110,13 +82,12 @@ int main()
             resp->set_body("Supported methods");
         });
 
-        serverPtr->add_middleware(std::make_shared<zhttp::zmiddleware::CorsMiddleware>
-            (zhttp::zmiddleware::CorsConfig::default_config()));
 
         // 启动服务器
         LOG_INFO << "Server starting on port 443...";
         serverPtr->start();
-    } catch (const std::exception &e)
+    }
+    catch (const std::exception &e)
     {
         LOG_FATAL << "Server start failed: " << e.what();
         return 1;

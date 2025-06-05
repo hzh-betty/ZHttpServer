@@ -11,18 +11,29 @@ namespace zhttp::zmiddleware
         virtual ~Middleware() = default;
 
         // 请求前处理
-        virtual void before(HttpRequest&request) = 0;
+        virtual void before(HttpRequest &request) = 0;
 
         // 响应后处理
-        virtual void after(HttpResponse&response) = 0;
+        virtual void after(HttpResponse &response) = 0;
 
         // 设置下一个中间件
-        void set_next(std::shared_ptr<Middleware>&& next)
+        void set_next(std::shared_ptr<Middleware> &&next)
         {
             next_middleware_ = std::move(next);
         }
+
     protected:
         std::shared_ptr<Middleware> next_middleware_; // 下一个中间件
     };
 
+    // 简单工厂模式
+    class MiddlewareFactory
+    {
+    public:
+        template<typename MiddlewareType, typename... Args>
+        static std::shared_ptr<Middleware> create(Args &&... args)
+        {
+            return std::make_shared<MiddlewareType>(std::forward<Args>(args)...);
+        }
+    };
 } // namespace zhttp::zmiddleware

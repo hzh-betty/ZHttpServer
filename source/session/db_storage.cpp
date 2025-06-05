@@ -24,7 +24,7 @@ namespace zhttp::zsession
         const std::string sql = "SELECT attributes, expiry FROM sessions WHERE session_id = ?";
         if (const auto result = conn->execute_query(sql, session_id); !result.empty())
         {
-            const auto &row = result[0];
+            const auto &row = result[0]; // 获取第一行数据
             if (row.size() < 2) return nullptr;
             std::string attrs = row[0];
             const int64_t expiry = std::stoll(row[1]);
