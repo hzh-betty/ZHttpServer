@@ -1,109 +1,157 @@
 #include "../../include/session/session_manager.h"
+#include "../../include/log/logger.h"
 #include <sstream>
-#include <mutex>
-#include <shared_mutex>
+#include <iomanip>
 
 namespace zhttp::zsession
 {
     // 从请求中获取或创建会话，也就是说，如果请求中包含会话ID，则从存储中加载会话，否则创建一个新的会话
     std::shared_ptr<Session> SessionManager::get_session(const HttpRequest &request, HttpResponse *response)
     {
+        ZHTTP_LOG_DEBUG("Getting session from request");
+        
         std::string session_id = get_session_id_from_request(request);
-        std::shared_ptr<Session> session;
+        
         if (!session_id.empty())
         {
+            ZHTTP_LOG_DEBUG("Found session ID in request: {}", session_id);
+            
+            // 尝试从存储中加载现有会话
+            if (auto session = session_storage_->load(session_id))
             {
-                std::shared_lock<std::shared_mutex> r_lock(rb_mutex_); // 自动管理生命周期
-                session = session_storage_->load(session_id);
-            }
-            // 如果会话存在，则检查是否过期
-            if (session)
-            {
-                session->refresh();
-                if (session->is_expired())
+                if (!session->is_expired())
                 {
-                    // 如果会话已过期，则删除会话
-                    destroy_session(session_id);
-                    session.reset();
+                    session->refresh(); // 刷新会话过期时间
+                    session_storage_->store(session); // 更新存储
+                    ZHTTP_LOG_INFO("Existing session {} loaded and refreshed", session_id);
+                    return session;
+                }
+                else
+                {
+                    ZHTTP_LOG_WARN("Session {} has expired, will create new session", session_id);
+                    session_storage_->remove(session_id);
                 }
             }
+            else
+            {
+                ZHTTP_LOG_DEBUG("Session {} not found in storage", session_id);
+            }
         }
-
-        if (!session)
-        {
-            // 如果会话不存在或已过期，则创建一个新的会话
-            session_id = generate_session_id();
-            session = std::make_shared<Session>(session_id);
-            set_session_id_to_response(response, session_id);
-            std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
-            session_storage_->store(session);
-        }
-
-        return session;
+        
+        // 创建新会话
+        session_id = generate_session_id();
+        auto new_session = std::make_shared<Session>(session_id);
+        session_storage_->store(new_session);
+        set_session_id_to_response(response, session_id);
+        
+        ZHTTP_LOG_INFO("New session {} created and stored", session_id);
+        return new_session;
     }
 
     // 设置会话存储
     void SessionManager::set_session_storage(std::unique_ptr<Storage> &&session_storage)
     {
+        ZHTTP_LOG_INFO("Setting new session storage");
+        std::unique_lock<std::shared_mutex> lock(rb_mutex_);
         session_storage_ = std::move(session_storage);
+        ZHTTP_LOG_INFO("Session storage updated successfully");
     }
 
 
     // 销毁会话
     void SessionManager::destroy_session(const std::string &session_id) const
     {
-        std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
+        ZHTTP_LOG_INFO("Destroying session: {}", session_id);
+        
+        std::unique_lock<std::shared_mutex> lock(rb_mutex_);
         session_storage_->remove(session_id);
+        
+        ZHTTP_LOG_INFO("Session {} destroyed successfully", session_id);
     }
 
     // 更新会话
     void SessionManager::update_session(const std::shared_ptr<Session> &session) const
     {
-        std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
+        ZHTTP_LOG_DEBUG("Updating session: {}", session->get_session_id());
+        
+        std::shared_lock<std::shared_mutex> lock(rb_mutex_);
         session_storage_->store(session);
+        
+        ZHTTP_LOG_DEBUG("Session {} updated successfully", session->get_session_id());
     }
 
     // 清理所有过期会话
     void SessionManager::cleanup_expired_sessions() const
     {
-        std::unique_lock<std::shared_mutex> w_lock(rb_mutex_);
+        ZHTTP_LOG_INFO("Starting cleanup of expired sessions");
+        
+        std::shared_lock<std::shared_mutex> lock(rb_mutex_);
         session_storage_->clear_expired();
+        
+        ZHTTP_LOG_INFO("Expired sessions cleanup completed");
     }
 
     // 生成随机会话ID
     std::string SessionManager::generate_session_id()
     {
-        std::stringstream ss{};
-        std::uniform_int_distribution<> dist(0, 15);
-        // 生成32个字符的会话ID，每个字符是一个十六进制数字
+        ZHTTP_LOG_DEBUG("Generating new session ID");
+        
+        std::uniform_int_distribution<> dis(0, 15);
+        std::stringstream ss;
+        
         for (int i = 0; i < 32; ++i)
         {
-            ss << std::hex << dist(rng_);
+            ss << std::hex << dis(rng_);
         }
-        return ss.str();
+        
+        std::string session_id = ss.str();
+        ZHTTP_LOG_DEBUG("Generated session ID: {}", session_id);
+        return session_id;
     }
 
     // 从请求中获取会话ID
     std::string SessionManager::get_session_id_from_request(const HttpRequest &request)
     {
-        std::string session_id;
-        if (auto cookie = request.get_header("Cookie"); !cookie.empty())
+        ZHTTP_LOG_DEBUG("Extracting session ID from request headers");
+        
+        std::string cookie_header = request.get_header("Cookie");
+        if (cookie_header.empty())
         {
-            const size_t pos = cookie.find("session_id=");
-            if (pos != std::string::npos)
-            {
-                const size_t end = cookie.find(';', pos);
-                session_id = cookie.substr(pos + 11, end - pos - 11);
-            }
+            ZHTTP_LOG_DEBUG("No Cookie header found in request");
+            return "";
         }
+
+        ZHTTP_LOG_DEBUG("Found Cookie header: {}", cookie_header);
+        
+        // 解析Cookie头，查找session_id
+        size_t pos = cookie_header.find("session_id=");
+        if (pos == std::string::npos)
+        {
+            ZHTTP_LOG_DEBUG("No session_id found in Cookie header");
+            return "";
+        }
+
+        pos += 11; // "session_id="的长度
+        size_t end_pos = cookie_header.find(';', pos);
+        if (end_pos == std::string::npos)
+        {
+            end_pos = cookie_header.length();
+        }
+
+        std::string session_id = cookie_header.substr(pos, end_pos - pos);
+        ZHTTP_LOG_DEBUG("Extracted session ID from Cookie: {}", session_id);
         return session_id;
     }
 
     // 设置会话ID到响应中Cookie
     void SessionManager::set_session_id_to_response(HttpResponse *response, const std::string &session_id)
     {
-        const std::string cookie = "session_id=" + session_id + "; Path=/; HttpOnly; Secure";
-        response->set_header("Set-Cookie", cookie);
+        ZHTTP_LOG_DEBUG("Setting session ID {} to response Cookie", session_id);
+        
+        std::string cookie_value = "session_id=" + session_id + "; Path=/; HttpOnly";
+        response->set_header("Set-Cookie", cookie_value);
+        
+        ZHTTP_LOG_DEBUG("Session ID set in response Cookie successfully");
     }
 
 } // namespace zhttp::zsession

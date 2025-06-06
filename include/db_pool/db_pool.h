@@ -27,6 +27,12 @@ namespace zhttp::zdb
         // 获取连接
         std::shared_ptr<DbConnection> get_connection();
 
+        // 获取连接池状态
+        size_t get_pool_size() const;
+
+        // 获取连接池是否已初始化
+        bool is_initialized() const;
+
     private:
         // 构造函数
         DbConnectionPool();

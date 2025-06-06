@@ -1,5 +1,7 @@
+#include "../../include/http/http_request.h"
+#include "../../include/log/logger.h"
 #include <algorithm>
-#include"../../include/http/http_request.h"
+#include <cctype>
 
 namespace zhttp
 {
@@ -7,6 +9,7 @@ namespace zhttp
     void HttpRequest::set_method(Method method)
     {
         method_ = method;
+        ZHTTP_LOG_DEBUG("HTTP request method set to: {}", static_cast<int>(method));
     }
 
 
@@ -15,11 +18,27 @@ namespace zhttp
         return method_;
     }
 
+    std::string HttpRequest::get_method_string() const
+    {
+        switch (method_)
+        {
+            case Method::GET: return "GET";
+            case Method::POST: return "POST";
+            case Method::PUT: return "PUT";
+            case Method::PATCH: return "PATCH";
+            case Method::HEAD: return "HEAD";
+            case Method::DELETE: return "DELETE";
+            case Method::OPTIONS: return "OPTIONS";
+            default: return "INVALID";
+        }
+    }
+
 
 // 设置与获取请求路径
     void HttpRequest::set_path(const std::string_view &path)
     {
         path_ = std::string(path.begin(), path.end());
+        ZHTTP_LOG_DEBUG("HTTP request path set to: '{}'", path_);
     }
 
 
@@ -29,10 +48,11 @@ namespace zhttp
     }
 
 
-    // 设置与获取请求http版本
+// 设置与获取请求http版本
     void HttpRequest::set_version(const std::string_view &version)
     {
         version_ = std::string(version.begin(), version.end());
+        ZHTTP_LOG_DEBUG("HTTP request version set to: '{}'", version_);
     }
 
 
@@ -42,10 +62,13 @@ namespace zhttp
     }
 
 
-    // 设置与获取请求路径参数
+// 设置与获取请求路径参数
     void HttpRequest::set_path_parameters(const std::string_view &key, const std::string_view &value)
     {
-        path_parameters_[std::string(key.begin(), key.end())] = std::string(value.begin(), value.end());
+        std::string key_str(key.begin(), key.end());
+        std::string value_str(value.begin(), value.end());
+        path_parameters_[key_str] = value_str;
+        ZHTTP_LOG_DEBUG("HTTP request path parameter set: '{}' = '{}'", key_str, value_str);
     }
 
 
@@ -53,36 +76,63 @@ namespace zhttp
     {
         if (const auto it = path_parameters_.find(key); it != path_parameters_.end())
         {
+            ZHTTP_LOG_DEBUG("HTTP request path parameter found: '{}' = '{}'", key, it->second);
             return it->second;
         }
+        ZHTTP_LOG_DEBUG("HTTP request path parameter not found: '{}'", key);
         return "";
     }
 
 
-    // 设置与获取请求查询参数
+// 设置与获取请求查询参数
     void HttpRequest::set_query_parameters(const std::string_view &str)
     {
-        // 解析查询参数
-        // 例如：GET /api?page=2&size=10 HTTP/1.1
-
-        size_t pos = 0;
-        while (pos < str.size())
+        ZHTTP_LOG_DEBUG("Parsing query parameters: '{}'", std::string(str));
+        
+        query_parameters_.clear();
+        
+        // 解析查询参数字符串，格式为：key1=value1&key2=value2
+        size_t start = 0;
+        size_t param_count = 0;
+        
+        while (start < str.length())
         {
-            const size_t equal_pos = str.find('=', pos);
-            if (equal_pos == std::string_view::npos)
-                break;
-
-            size_t amp_pos = str.find('&', equal_pos);
-            if (amp_pos == std::string_view::npos)
-                amp_pos = str.size();
-
-            std::string key(str.substr(pos, equal_pos - pos));
-            const std::string value(str.substr(equal_pos + 1, amp_pos - equal_pos - 1));
-            query_parameters_[key] = value;
-
-            pos = amp_pos + 1;
+            // 查找下一个&或字符串结尾
+            size_t end = str.find('&', start);
+            if (end == std::string_view::npos)
+            {
+                end = str.length();
+            }
+            
+            // 解析单个参数
+            std::string_view param = str.substr(start, end - start);
+            size_t equals_pos = param.find('=');
+            
+            if (equals_pos != std::string_view::npos)
+            {
+                std::string key(param.substr(0, equals_pos));
+                std::string value(param.substr(equals_pos + 1));
+                
+                // URL解码可以在这里添加
+                query_parameters_[key] = value;
+                param_count++;
+                
+                ZHTTP_LOG_DEBUG("Query parameter parsed: '{}' = '{}'", key, value);
+            }
+            else if (!param.empty())
+            {
+                // 没有值的参数，设置为空字符串
+                std::string key(param);
+                query_parameters_[key] = "";
+                param_count++;
+                
+                ZHTTP_LOG_DEBUG("Query parameter parsed (no value): '{}'", key);
+            }
+            
+            start = end + 1;
         }
-
+        
+        ZHTTP_LOG_INFO("Query parameters parsed successfully, total count: {}", param_count);
     }
 
 
@@ -90,8 +140,10 @@ namespace zhttp
     {
         if (const auto it = query_parameters_.find(key); it != query_parameters_.end())
         {
+            ZHTTP_LOG_DEBUG("HTTP request query parameter found: '{}' = '{}'", key, it->second);
             return it->second;
         }
+        ZHTTP_LOG_DEBUG("HTTP request query parameter not found: '{}'", key);
         return "";
     }
 
@@ -99,6 +151,7 @@ namespace zhttp
     void HttpRequest::set_receive_time(const muduo::Timestamp &time)
     {
         receive_time_ = time;
+        ZHTTP_LOG_DEBUG("HTTP request receive time set to: {}", time.toFormattedString());
     }
 
     const muduo::Timestamp &HttpRequest::get_receive_time() const
@@ -109,32 +162,35 @@ namespace zhttp
     // 设置与获取请求头
     void HttpRequest::set_header(const std::string_view &key, const std::string_view &value)
     {
-        // Content-Length : 1234
-        // Content-Type : application/json
-        // 排除前后空格
-        size_t pos1 = key.size() -1 ;
-        while(isspace(key[pos1]) && pos1 > 0)
-        {
-            --pos1;
-        }
-        const std::string_view key_view = key.substr(0, pos1 + 1);
-
-        size_t pos2 = 0;
-        while(isspace(value[pos2]) && pos2 < value.size())
-        {
-            ++pos2;
-        }
-        std::string_view value_view = value.substr(pos2, value.size() - pos2);
-        headers_[std::string(key_view.begin(), key_view.end())] =
-                std::string(value_view.begin(), value_view.end());
+        // 去除键值的前后空白字符
+        std::string trimmed_key(key.begin(), key.end());
+        std::string trimmed_value(value.begin(), value.end());
+        
+        // 去除前后空白
+        auto trim = [](std::string &s) {
+            s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+                return !std::isspace(ch);
+            }));
+            s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+                return !std::isspace(ch);
+            }).base(), s.end());
+        };
+        
+        trim(trimmed_key);
+        trim(trimmed_value);
+        
+        headers_[trimmed_key] = trimmed_value;
+        ZHTTP_LOG_DEBUG("HTTP request header set: '{}' = '{}'", trimmed_key, trimmed_value);
     }
 
     std::string HttpRequest::get_header(const std::string &key) const
     {
         if (const auto it = headers_.find(key); it != headers_.end())
         {
+            ZHTTP_LOG_DEBUG("HTTP request header found: '{}' = '{}'", key, it->second);
             return it->second;
         }
+        ZHTTP_LOG_DEBUG("HTTP request header not found: '{}'", key);
         return "";
     }
 
@@ -142,6 +198,14 @@ namespace zhttp
     void HttpRequest::set_content(const std::string_view &content)
     {
         content_ = std::string(content.begin(), content.end());
+        ZHTTP_LOG_DEBUG("HTTP request content set, length: {} bytes", content_.size());
+        
+        if (!content_.empty())
+        {
+            // 只显示前100个字符的预览
+            std::string preview = content_.substr(0, std::min(size_t(100), content_.size()));
+            ZHTTP_LOG_DEBUG("HTTP request content preview: '{}'", preview);
+        }
     }
 
 
@@ -155,6 +219,7 @@ namespace zhttp
     void HttpRequest::set_content_length(uint64_t length)
     {
         content_length_ = length;
+        ZHTTP_LOG_DEBUG("HTTP request content length set to: {}", length);
     }
 
 
@@ -165,15 +230,19 @@ namespace zhttp
 
     void HttpRequest::swap(HttpRequest &other) noexcept
     {
+        ZHTTP_LOG_DEBUG("Swapping HTTP request objects");
+        
         std::swap(method_, other.method_);
-        std::swap(path_, other.path_);
-        std::swap(version_, other.version_);
-        std::swap(path_parameters_, other.path_parameters_);
-        std::swap(query_parameters_, other.query_parameters_);
+        path_.swap(other.path_);
+        version_.swap(other.version_);
+        path_parameters_.swap(other.path_parameters_);
+        query_parameters_.swap(other.query_parameters_);
         std::swap(receive_time_, other.receive_time_);
-        std::swap(headers_, other.headers_);
-        std::swap(content_, other.content_);
+        headers_.swap(other.headers_);
+        content_.swap(other.content_);
         std::swap(content_length_, other.content_length_);
+        
+        ZHTTP_LOG_DEBUG("HTTP request objects swapped successfully");
     }
 
 }// namespace zhttp

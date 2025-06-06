@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.15)
 project(ZHttpServer)
 set(CMAKE_CXX_STANDARD 17)
 
+#查找fmt库
+find_package(fmt REQUIRED)
+
 # 查找 Muduo 库
 find_library(MUDUO_NET_LIB muduo_net REQUIRED)
 find_library(MUDUO_BASE_LIB muduo_base REQUIRED)
@@ -32,6 +35,7 @@ find_package(OpenSSL REQUIRED)
 
 # 检索所有头文件目录路径
 file(GLOB_RECURSE ALL_HEADER_FILES
+        ${PROJECT_SOURCE_DIR}/zlog/*.hpp
         ${PROJECT_SOURCE_DIR}/include/*.h
         ${PROJECT_SOURCE_DIR}/test/*.h)
 
@@ -77,6 +81,7 @@ target_link_libraries(zhttpserver
         ${SSL_LIB}
         ${CRYPTO_LIB}
         pthread
+        fmt::fmt
 )
 
 # 主程序和单元测试只链接动态库
