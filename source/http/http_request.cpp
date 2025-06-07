@@ -9,7 +9,7 @@ namespace zhttp
     void HttpRequest::set_method(Method method)
     {
         method_ = method;
-        ZHTTP_LOG_DEBUG("HTTP request method set to: {}", static_cast<int>(method));
+        ZHTTP_LOG_DEBUG("HTTP request method set to: {}", get_method_string());
     }
 
 

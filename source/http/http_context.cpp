@@ -5,11 +5,6 @@ namespace zhttp
 {
     bool HttpContext::parse_request(muduo::net::Buffer *buffer, muduo::Timestamp receive_time)
     {
-        if (buffer->readableBytes() == 0)
-        {
-            ZHTTP_LOG_DEBUG("Buffer is empty, no data to parse");
-            return false;
-        }
 
         ZHTTP_LOG_DEBUG("Starting HTTP request parsing, buffer size: {} bytes", buffer->readableBytes());
 
@@ -18,6 +13,13 @@ namespace zhttp
         
         while (loop)
         {
+            // 如果解析状态是ExpectComplete，表示已经完成了请求行和头部的解析
+            if (state_ == HttpRequestParseState::ExpectComplete)
+            {
+                ZHTTP_LOG_DEBUG("Request already parsed, checking for body");
+                break;
+            }
+
             // 如果已经到了解析请求体阶段
             if (state_ == HttpRequestParseState::ExpectBody)
             {
@@ -37,14 +39,13 @@ namespace zhttp
                 switch (state_)
                 {
                     case HttpRequestParseState::ExpectRequestLine:
-                        ZHTTP_LOG_DEBUG("Parsing request line");
                         check = loop = parse_request_line(line, receive_time);
                         if (!check) {
                             ZHTTP_LOG_ERROR("Failed to parse request line: '{}'", std::string(line));
                         }
                         break;
                     case HttpRequestParseState::ExpectHeaders:
-                        ZHTTP_LOG_DEBUG("Parsing header line");
+                        ZHTTP_LOG_DEBUG("Parsing header line : {}", std::string(line));
                         check = loop = parse_headers(line);
                         if (!check) {
                             ZHTTP_LOG_ERROR("Failed to parse header line: '{}'", std::string(line));
@@ -65,7 +66,7 @@ namespace zhttp
             }
         }
 
-        ZHTTP_LOG_DEBUG("HTTP request parsing completed, success: {}, parse complete: {}", 
+        ZHTTP_LOG_INFO("HTTP request parsing completed, success: {}, parse complete: {}",
                        check, is_parse_complete());
         return check;
     }
