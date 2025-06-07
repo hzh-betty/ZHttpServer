@@ -3,7 +3,10 @@
 #include <map>
 #include <unordered_map>
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <muduo/base/Timestamp.h>
+
 
 namespace zhttp
 {
@@ -64,6 +67,9 @@ namespace zhttp
         uint64_t get_content_length() const;
 
         void swap(HttpRequest&other) noexcept;
+    private:
+        // url解码
+        std::string url_decode(const std::string &src,bool plus_to_space);
     private:
         Method method_ = Method::Invalid;// 请求方法
         std::string path_;// 请求路径

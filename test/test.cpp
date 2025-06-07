@@ -16,11 +16,9 @@
 #include "db_pool/test_db_pool.h"
 
 #include "ssl/test_ssl_config.h"
-#include"../../include/log/logger.h"
 
 int main()
 {
-    zhttp::Log::Init(zlog::LogLevel::value::WARNING);
     ::testing::InitGoogleTest();
     return RUN_ALL_TESTS();
 }
