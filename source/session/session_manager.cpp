@@ -5,10 +5,17 @@
 
 namespace zhttp::zsession
 {
-    // 从请求中获取或创建会话，也就是说，如果请求中包含会话ID，则从存储中加载会话，否则创建一个新的会话
+    SessionManager::SessionManager() : session_storage_(std::make_unique<InMemoryStorage>())
+    {
+        ZHTTP_LOG_INFO("SessionManager initialized with default memory storage");
+    }
+
+    // 从请求中获取或创建会话
     std::shared_ptr<Session> SessionManager::get_session(const HttpRequest &request, HttpResponse *response)
     {
         ZHTTP_LOG_DEBUG("Getting session from request");
+        
+        std::shared_lock<std::shared_mutex> lock(rb_mutex_);
         
         std::string session_id = get_session_id_from_request(request);
         
@@ -51,19 +58,18 @@ namespace zhttp::zsession
     // 设置会话存储
     void SessionManager::set_session_storage(std::unique_ptr<Storage> &&session_storage)
     {
-        ZHTTP_LOG_INFO("Setting new session storage");
+        ZHTTP_LOG_INFO("Setting custom session storage");
         std::unique_lock<std::shared_mutex> lock(rb_mutex_);
         session_storage_ = std::move(session_storage);
-        ZHTTP_LOG_INFO("Session storage updated successfully");
+        ZHTTP_LOG_INFO("Custom session storage updated successfully");
     }
-
 
     // 销毁会话
     void SessionManager::destroy_session(const std::string &session_id) const
     {
         ZHTTP_LOG_INFO("Destroying session: {}", session_id);
         
-        std::unique_lock<std::shared_mutex> lock(rb_mutex_);
+        std::shared_lock<std::shared_mutex> lock(rb_mutex_);
         session_storage_->remove(session_id);
         
         ZHTTP_LOG_INFO("Session {} destroyed successfully", session_id);

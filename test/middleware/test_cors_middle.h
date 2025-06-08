@@ -6,7 +6,7 @@
 namespace zhttp::zmiddleware
 {
     // 模拟中间件调用后抛出 HttpResponse 的工具函数
-    bool handle_preflight(CorsMiddleware &middleware, HttpRequest &request, HttpResponse &out_response)
+    inline bool handle_preflight(CorsMiddleware &middleware, HttpRequest &request, HttpResponse &out_response)
     {
         try
         {

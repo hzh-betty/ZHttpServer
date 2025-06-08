@@ -1,6 +1,7 @@
 #pragma once
 #include "session.h"
 #include "memory_storage.h"
+#include "db_storage.h"
 #include "../http/http_request.h"
 #include "../http/http_response.h"
 #include <random>
@@ -22,7 +23,7 @@ namespace zhttp::zsession
             return instance;
         }
 
-        // 从请求中获取或创建会话，也就是说，如果请求中包含会话ID，则从存储中加载会话，否则创建一个新的会话
+        // 从请求中获取或创建会话
         std::shared_ptr<Session> get_session(const HttpRequest &request, HttpResponse *response);
 
         // 设置会话存储
@@ -38,13 +39,8 @@ namespace zhttp::zsession
         void cleanup_expired_sessions() const;
 
     private:
-        SessionManager()
-                : session_storage_(std::make_unique<InMemoryStorage>())
-        {
-        }
+        SessionManager();
 
-
-    private:
         // 生成随机会话ID
         std::string generate_session_id();
 

@@ -1,91 +1,122 @@
 #include "../../include/session/db_storage.h"
+#include "../../include/db_pool/redis_pool.h"
 #include "../../include/log/logger.h"
 #include <nlohmann/json.hpp>
 #include <chrono>
 
 namespace zhttp::zsession
 {
-    // 存储会话到数据库
+    // 存储会话到Redis
     void DbSessionStorage::store(const std::shared_ptr<Session> &session)
     {
-        ZHTTP_LOG_DEBUG("Storing session {} to database", session->get_session_id());
+        ZHTTP_LOG_DEBUG("Storing session {} to Redis", session->get_session_id());
         
         try
         {
-            const auto conn = pool_.get_connection();
+            auto &redis_pool = zdb::RedisConnectionPool::get_instance();
+            const auto conn = redis_pool.get_connection();
             const nlohmann::json j = session->get_attributes_json();
             std::string attrs = j.dump();
-            int64_t expiry = std::chrono::duration_cast<std::chrono::seconds>(
-                session->get_expiry_time().time_since_epoch()).count();
-
-            const std::string sql = "REPLACE INTO sessions (session_id, attributes, expiry) VALUES (?, ?, ?)";
-            conn->execute_update(sql, session->get_session_id(), attrs, expiry);
             
-            ZHTTP_LOG_INFO("Session {} stored to database successfully", session->get_session_id());
+            auto expiry_time = session->get_expiry_time();
+            auto now = std::chrono::system_clock::now();
+            auto ttl = std::chrono::duration_cast<std::chrono::seconds>(expiry_time - now);
+            
+            if (ttl.count() <= 0)
+            {
+                ZHTTP_LOG_WARN("Session {} has already expired, not storing to Redis", session->get_session_id());
+                return;
+            }
+
+            std::string key = "session:" + session->get_session_id();
+            
+            // 使用Redis Hash存储会话数据
+            conn->hset(key, "attributes", attrs);
+            conn->hset(key, "expiry", std::to_string(
+                std::chrono::duration_cast<std::chrono::seconds>(expiry_time.time_since_epoch()).count()));
+            
+            // 设置过期时间
+            conn->expire(key, ttl);
+            
+            ZHTTP_LOG_INFO("Session {} stored to Redis successfully with TTL {} seconds", 
+                          session->get_session_id(), ttl.count());
         }
         catch (const std::exception &e)
         {
-            ZHTTP_LOG_ERROR("Failed to store session {} to database: {}", 
+            ZHTTP_LOG_ERROR("Failed to store session {} to Redis: {}", 
                            session->get_session_id(), e.what());
             throw;
         }
     }
 
-    // 从数据库加载会话
+    // 从Redis加载会话
     std::shared_ptr<Session> DbSessionStorage::load(const std::string &session_id)
     {
-        ZHTTP_LOG_DEBUG("Loading session {} from database", session_id);
+        ZHTTP_LOG_DEBUG("Loading session {} from Redis", session_id);
         
         try
         {
-            const auto conn = pool_.get_connection();
-            const std::string sql = "SELECT attributes, expiry FROM sessions WHERE session_id = ?";
+            auto &redis_pool = zdb::RedisConnectionPool::get_instance();
+            const auto conn = redis_pool.get_connection();
+            std::string key = "session:" + session_id;
             
-            if (const auto result = conn->execute_query(sql, session_id); !result.empty())
+            // 检查key是否存在
+            if (!conn->exists(key))
             {
-                const auto &row = result[0];
-                if (row.size() < 2) 
-                {
-                    ZHTTP_LOG_WARN("Incomplete session data for {}", session_id);
-                    return nullptr;
-                }
-                
-                std::string attrs = row[0];
-                const int64_t expiry = std::stoll(row[1]);
-                auto session = std::make_shared<Session>(session_id);
-                
-                // 检查是否过期
-                auto expiry_time = std::chrono::system_clock::time_point(std::chrono::seconds(expiry));
-                if (expiry_time < std::chrono::system_clock::now())
-                {
-                    ZHTTP_LOG_WARN("Session {} has expired, removing from database", session_id);
-                    remove(session_id);
-                    return nullptr;
-                }
-                
-                nlohmann::json j = nlohmann::json::parse(attrs, nullptr, false);
-                if (!j.is_object())
-                {
-                    ZHTTP_LOG_ERROR("Invalid JSON format for session {} attributes", session_id);
-                    return nullptr;
-                }
-                
-                for (auto it = j.begin(); it != j.end(); ++it)
-                {
-                    session->set_attribute(it.key(), it.value().get<std::string>());
-                }
-                session->set_expiry_time(expiry_time);
-                
-                ZHTTP_LOG_DEBUG("Session {} loaded from database successfully", session_id);
-                return session;
+                ZHTTP_LOG_DEBUG("Session {} not found in Redis", session_id);
+                return nullptr;
+            }
+
+            // 获取会话数据
+            auto result = conn->hgetall(key);
+            if (result.empty())
+            {
+                ZHTTP_LOG_DEBUG("Session {} data is empty in Redis", session_id);
+                return nullptr;
+            }
+
+            auto attrs_it = result.find("attributes");
+            auto expiry_it = result.find("expiry");
+            
+            if (attrs_it == result.end() || expiry_it == result.end())
+            {
+                ZHTTP_LOG_WARN("Incomplete session data for {} in Redis", session_id);
+                return nullptr;
+            }
+
+            // 检查是否过期
+            int64_t expiry = std::stoll(expiry_it->second);
+            auto expiry_time = std::chrono::system_clock::time_point(std::chrono::seconds(expiry));
+            if (expiry_time < std::chrono::system_clock::now())
+            {
+                ZHTTP_LOG_WARN("Session {} has expired, removing from Redis", session_id);
+                remove(session_id);
+                return nullptr;
+            }
+
+            // 创建会话对象
+            auto session = std::make_shared<Session>(session_id);
+            
+            // 解析属性
+            nlohmann::json j = nlohmann::json::parse(attrs_it->second, nullptr, false);
+            if (!j.is_object())
+            {
+                ZHTTP_LOG_ERROR("Invalid JSON format for session {} attributes in Redis", session_id);
+                return nullptr;
             }
             
-            ZHTTP_LOG_DEBUG("Session {} not found in database", session_id);
-            return nullptr;
+            for (auto it = j.begin(); it != j.end(); ++it)
+            {
+                session->set_attribute(it.key(), it.value().get<std::string>());
+            }
+            session->set_expiry_time(expiry_time);
+            
+            ZHTTP_LOG_DEBUG("Session {} loaded from Redis successfully", session_id);
+            return session;
         }
         catch (const std::exception &e)
         {
-            ZHTTP_LOG_ERROR("Failed to load session {} from database: {}", session_id, e.what());
+            ZHTTP_LOG_ERROR("Failed to load session {} from Redis: {}", session_id, e.what());
             return nullptr;
         }
     }
@@ -93,19 +124,27 @@ namespace zhttp::zsession
     // 删除会话
     void DbSessionStorage::remove(const std::string &session_id)
     {
-        ZHTTP_LOG_DEBUG("Removing session {} from database", session_id);
+        ZHTTP_LOG_DEBUG("Removing session {} from Redis", session_id);
         
         try
         {
-            const auto conn = pool_.get_connection();
-            const std::string sql = "DELETE FROM sessions WHERE session_id = ?";
-            conn->execute_update(sql, session_id);
+            auto &redis_pool = zdb::RedisConnectionPool::get_instance();
+            const auto conn = redis_pool.get_connection();
+            std::string key = "session:" + session_id;
             
-            ZHTTP_LOG_INFO("Session {} removed from database successfully", session_id);
+            bool deleted = conn->del(key);
+            if (deleted)
+            {
+                ZHTTP_LOG_INFO("Session {} removed from Redis successfully", session_id);
+            }
+            else
+            {
+                ZHTTP_LOG_DEBUG("Session {} not found for removal in Redis", session_id);
+            }
         }
         catch (const std::exception &e)
         {
-            ZHTTP_LOG_ERROR("Failed to remove session {} from database: {}", session_id, e.what());
+            ZHTTP_LOG_ERROR("Failed to remove session {} from Redis: {}", session_id, e.what());
             throw;
         }
     }
@@ -113,21 +152,50 @@ namespace zhttp::zsession
     // 清除所有过期会话
     void DbSessionStorage::clear_expired()
     {
-        ZHTTP_LOG_DEBUG("Starting database expired session cleanup");
+        ZHTTP_LOG_DEBUG("Starting Redis expired session cleanup");
         
         try
         {
-            const auto conn = pool_.get_connection();
-            int64_t now = std::chrono::duration_cast<std::chrono::seconds>(
-                std::chrono::system_clock::now().time_since_epoch()).count();
-            const std::string sql = "DELETE FROM sessions WHERE expiry < ?";
+            auto &redis_pool = zdb::RedisConnectionPool::get_instance();
+            const auto conn = redis_pool.get_connection();
+            std::string pattern = "session:*";
             
-            auto affected_rows = conn->execute_update(sql, now);
-            ZHTTP_LOG_INFO("Database expired session cleanup completed, removed {} sessions", affected_rows);
+            // 使用SCAN命令遍历所有session key
+            auto keys = conn->scan_keys(pattern, 100);
+            size_t removed_count = 0;
+            
+            for (const auto &key : keys)
+            {
+                try
+                {
+                    // 获取会话数据检查是否过期
+                    auto result = conn->hgetall(key);
+                    auto expiry_it = result.find("expiry");
+                    
+                    if (expiry_it != result.end())
+                    {
+                        int64_t expiry = std::stoll(expiry_it->second);
+                        auto expiry_time = std::chrono::system_clock::time_point(std::chrono::seconds(expiry));
+                        
+                        if (expiry_time < std::chrono::system_clock::now())
+                        {
+                            conn->del(key);
+                            removed_count++;
+                            ZHTTP_LOG_DEBUG("Removed expired session key: {}", key);
+                        }
+                    }
+                }
+                catch (const std::exception &e)
+                {
+                    ZHTTP_LOG_WARN("Error checking expiry for key {}: {}", key, e.what());
+                }
+            }
+            
+            ZHTTP_LOG_INFO("Redis expired session cleanup completed, removed {} sessions", removed_count);
         }
         catch (const std::exception &e)
         {
-            ZHTTP_LOG_ERROR("Failed to cleanup expired sessions from database: {}", e.what());
+            ZHTTP_LOG_ERROR("Failed to cleanup expired sessions from Redis: {}", e.what());
             throw;
         }
     }
