@@ -285,7 +285,7 @@ namespace zhttp
                                 const zhttp::HttpRequest &request)
     {
         ZHTTP_LOG_INFO("Processing HTTP request: {} {} from {}", 
-                      request.get_method_string(),
+                      request.get_method_string(request.get_method()),
                       request.get_path(),
                       conn->peerAddress().toIpPort());
         
@@ -347,7 +347,7 @@ namespace zhttp
             if (!router_->route(req, response))
             {
                 ZHTTP_LOG_WARN("Route not found: {} {}", 
-                              req.get_method_string(), req.get_path());
+                              req.get_method_string(req.get_method()), req.get_path());
                 response->set_status_code(zhttp::HttpResponse::StatusCode::NotFound);
                 response->set_status_message("Not Found");
                 response->set_body("404 Not Found");

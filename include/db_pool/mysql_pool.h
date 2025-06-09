@@ -1,22 +1,22 @@
 #pragma once
-#include "db_connection.h"
+#include "mysql_connection.h"
 #include <queue>
 #include <condition_variable>
 #include <thread>
 
 namespace zhttp::zdb
 {
-    class DbConnectionPool
+    class MysqlConnectionPool
     {
     public:
         // 禁止拷贝
-        DbConnectionPool(const DbConnectionPool &) = delete;
+        MysqlConnectionPool(const MysqlConnectionPool &) = delete;
 
-        DbConnectionPool &operator=(const DbConnectionPool &) = delete;
+        MysqlConnectionPool &operator=(const MysqlConnectionPool &) = delete;
 
-        static DbConnectionPool &get_instance()
+        static MysqlConnectionPool &get_instance()
         {
-            static DbConnectionPool instance;
+            static MysqlConnectionPool instance;
             return instance;
         }
 
@@ -25,7 +25,7 @@ namespace zhttp::zdb
                   const std::string &password, const std::string &database, uint32_t pool_size = 10);
 
         // 获取连接
-        std::shared_ptr<DbConnection> get_connection();
+        std::shared_ptr<MysqlConnection> get_connection();
 
         // 获取连接池状态
         size_t get_pool_size() const;
@@ -35,12 +35,12 @@ namespace zhttp::zdb
 
     private:
         // 构造函数
-        DbConnectionPool();
+        MysqlConnectionPool();
 
-        ~DbConnectionPool();
+        ~MysqlConnectionPool();
 
         // 获取连接
-        std::shared_ptr<DbConnection> create_connection();
+        std::shared_ptr<MysqlConnection> create_connection();
 
         //  检查连接
         void check_connections() const;
@@ -50,7 +50,7 @@ namespace zhttp::zdb
         std::string user_;
         std::string password_;
         std::string database_;
-        std::queue<std::shared_ptr<DbConnection> > connections_;
+        std::queue<std::shared_ptr<MysqlConnection> > connections_;
         mutable std::mutex mutex_;
         std::condition_variable cv_;
         bool initialized_ = false;

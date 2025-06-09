@@ -1,5 +1,6 @@
 #include "../../include/db_pool/redis_connection.h"
 #include "../../include/log/logger.h"
+#include "../../include/db_pool/db_exception.h"
 
 namespace zhttp::zdb
 {
@@ -78,7 +79,7 @@ namespace zhttp::zdb
         }
     }
 
-    void RedisConnection::cleanup()
+    void RedisConnection::cleanup() const
     {
         ZHTTP_LOG_DEBUG("Cleaning up Redis connection");
         try
@@ -131,7 +132,7 @@ namespace zhttp::zdb
         }
     }
 
-    void RedisConnection::set(const std::string &key, const std::string &value, std::chrono::seconds ttl)
+    void RedisConnection::set(const std::string &key, const std::string &value, const std::chrono::seconds ttl) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -152,7 +153,7 @@ namespace zhttp::zdb
         }
     }
 
-    std::string RedisConnection::get(const std::string &key)
+    std::string RedisConnection::get(const std::string &key) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -167,7 +168,7 @@ namespace zhttp::zdb
         }
     }
 
-    bool RedisConnection::exists(const std::string &key)
+    bool RedisConnection::exists(const std::string &key) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -181,7 +182,7 @@ namespace zhttp::zdb
         }
     }
 
-    bool RedisConnection::del(const std::string &key)
+    bool RedisConnection::del(const std::string &key) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -195,7 +196,7 @@ namespace zhttp::zdb
         }
     }
 
-    void RedisConnection::hset(const std::string &key, const std::string &field, const std::string &value)
+    void RedisConnection::hset(const std::string &key, const std::string &field, const std::string &value) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -209,7 +210,7 @@ namespace zhttp::zdb
         }
     }
 
-    std::string RedisConnection::hget(const std::string &key, const std::string &field)
+    std::string RedisConnection::hget(const std::string &key, const std::string &field) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -224,7 +225,7 @@ namespace zhttp::zdb
         }
     }
 
-    std::unordered_map<std::string, std::string> RedisConnection::hgetall(const std::string &key)
+    std::unordered_map<std::string, std::string> RedisConnection::hgetall(const std::string &key) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -240,7 +241,7 @@ namespace zhttp::zdb
         }
     }
 
-    void RedisConnection::expire(const std::string &key, std::chrono::seconds ttl)
+    void RedisConnection::expire(const std::string &key, std::chrono::seconds ttl) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -254,7 +255,7 @@ namespace zhttp::zdb
         }
     }
 
-    std::vector<std::string> RedisConnection::scan_keys(const std::string &pattern, size_t count)
+    std::vector<std::string> RedisConnection::scan_keys(const std::string &pattern, const size_t count) const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         try
@@ -265,7 +266,7 @@ namespace zhttp::zdb
             do
             {
                 std::vector<std::string> batch_keys;
-                cursor = redis_->scan(cursor, pattern, count, std::back_inserter(batch_keys));
+                cursor = redis_->scan(cursor, pattern, (long long)count, std::back_inserter(batch_keys));
                 
                 for (const auto &key : batch_keys)
                 {

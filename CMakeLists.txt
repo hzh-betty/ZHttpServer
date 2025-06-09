@@ -33,6 +33,21 @@ find_library(CRYPTO_LIB crypto REQUIRED)
 # OpenSSL 查找
 find_package(OpenSSL REQUIRED)
 
+# 查找 redis-plus-plus
+find_library(REDIS_PLUS_PLUS_LIB
+    NAMES redis++ redis-plus-plus
+    PATHS /usr/local/lib /usr/lib /usr/lib64
+    REQUIRED
+)
+
+# 查找 hiredis
+find_library(HIREDIS_LIB
+    NAMES hiredis
+    PATHS /usr/local/lib /usr/lib /usr/lib64
+    REQUIRED
+)
+
+
 # 检索所有头文件目录路径
 file(GLOB_RECURSE ALL_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/zlog/*.hpp
@@ -82,6 +97,8 @@ target_link_libraries(zhttpserver
         ${CRYPTO_LIB}
         pthread
         fmt::fmt
+        ${REDIS_PLUS_PLUS_LIB}
+        ${HIREDIS_LIB}
 )
 
 # 主程序和单元测试只链接动态库

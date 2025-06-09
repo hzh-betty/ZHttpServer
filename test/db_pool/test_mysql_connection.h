@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../include/db_pool/db_connection.h"
+#include "../../include/db_pool/mysql_connection.h"
 #include <gtest/gtest.h>
 #include <thread>
 #include <vector>
@@ -9,18 +9,18 @@
 namespace zhttp::zdb
 {
     // 全局数据库配置信息
-    inline const std::string HOST = "1.95.159.45";
+    inline const std::string HOST = "127.0.0.1";
     inline const std::string USER = "betty";
     inline const std::string PASSWORD = "betty";
     inline const std::string DATABASE = "test";
 
     // 测试 DbConnection 类
-    class DbConnectionTest : public ::testing::Test
+    class MysqlConnectionTest : public ::testing::Test
     {
     protected:
         void SetUp() override
         {
-            conn_ = std::make_shared<DbConnection>(HOST, USER, PASSWORD, DATABASE);
+            conn_ = std::make_shared<MysqlConnection>(HOST, USER, PASSWORD, DATABASE);
             ASSERT_TRUE(conn_->is_valid()) << "初始化连接失败";
         }
 
@@ -29,15 +29,15 @@ namespace zhttp::zdb
             conn_.reset();
         }
 
-        std::shared_ptr<DbConnection> conn_;
+        std::shared_ptr<MysqlConnection> conn_;
     };
 
-    TEST_F(DbConnectionTest, TestPing)
+    TEST_F(MysqlConnectionTest, TestPing)
     {
         ASSERT_TRUE(conn_->ping());
     }
 
-    TEST_F(DbConnectionTest, TestExecuteUpdate)
+    TEST_F(MysqlConnectionTest, TestExecuteUpdate)
     {
         conn_->execute_update(
                 "CREATE TABLE IF NOT EXISTS gtest_users (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255))");
@@ -46,7 +46,7 @@ namespace zhttp::zdb
         ASSERT_EQ(affected, 1);
     }
 
-    TEST_F(DbConnectionTest, TestExecuteQuery)
+    TEST_F(MysqlConnectionTest, TestExecuteQuery)
     {
         auto result = conn_->execute_query(
                 "SELECT name FROM gtest_users WHERE name = ?", std::string("Alice"));
@@ -54,14 +54,14 @@ namespace zhttp::zdb
         ASSERT_EQ(result[0][0], "Alice");
     }
 
-    TEST_F(DbConnectionTest, TestReconnect)
+    TEST_F(MysqlConnectionTest, TestReconnect)
     {
         conn_->reconnect();
         ASSERT_TRUE(conn_->is_valid());
     }
 
     // 并发执行简单查询
-    TEST_F(DbConnectionTest, ConcurrentExecuteQuery)
+    TEST_F(MysqlConnectionTest, ConcurrentExecuteQuery)
     {
         constexpr int kThreads = 8;
         std::atomic<int> success_count{0};
@@ -94,7 +94,7 @@ namespace zhttp::zdb
     }
 
     // 并发 ping 与查询，测试锁竞争
-    TEST_F(DbConnectionTest, ConcurrentPingAndQuery)
+    TEST_F(MysqlConnectionTest, ConcurrentPingAndQuery)
     {
         constexpr int kThreads = 4;
         std::atomic<int> ping_success{0};

@@ -1,66 +1,72 @@
 #pragma once
-#include "../../session/db_storage.h"
 #include <gtest/gtest.h>
+#include "../../include/db_pool/redis_pool.h"
+#include "../../include/session/db_storage.h"
+#include "../../include/session/session.h"
+#include <thread>
+#include <chrono>
 
 namespace zhttp::zsession
 {
-    // 数据库连接池初始化
-    struct DbPoolInit
-    {
-        DbPoolInit()
-        {
-            zhttp::zdb::DbConnectionPool::get_instance().init(
-                "1.95.159.45", "betty", "betty", "test", 2);
-        }
-    };
-
-    inline DbPoolInit _db_pool_init;
-
     class DbSessionStorageTest : public ::testing::Test
     {
     protected:
         void SetUp() override
         {
+            zdb::RedisConnectionPool::get_instance().init("127.0.0.1", 6379, "", 0, 3, 2000);
             storage = std::make_unique<DbSessionStorage>();
+            session_id = "gtest_session_id";
+            session = std::make_shared<Session>(session_id);
+            session->set_attribute("user", "alice");
+            session->set_attribute("role", "admin");
+            session->set_expiry_time(std::chrono::system_clock::now() + std::chrono::seconds(60));
+        }
+
+        void TearDown() override
+        {
+            storage->remove(session_id);
         }
 
         std::unique_ptr<DbSessionStorage> storage;
+        std::shared_ptr<Session> session;
+        std::string session_id;
     };
 
-    TEST_F(DbSessionStorageTest, StoreAndLoadSession)
+    TEST_F(DbSessionStorageTest, StoreAndLoad)
     {
-        const auto session = std::make_shared<Session>("test_session_id", 60);
-        session->set_attribute("user", "alice");
         storage->store(session);
-
-        const auto loaded = storage->load("test_session_id");
+        auto loaded = storage->load(session_id);
         ASSERT_NE(loaded, nullptr);
-        EXPECT_EQ(loaded->get_session_id(), "test_session_id");
+        EXPECT_EQ(loaded->get_session_id(), session_id);
         EXPECT_EQ(loaded->get_attribute("user"), "alice");
+        EXPECT_EQ(loaded->get_attribute("role"), "admin");
     }
 
-    TEST_F(DbSessionStorageTest, RemoveSession)
+    TEST_F(DbSessionStorageTest, Remove)
     {
-        const auto session = std::make_shared<Session>("to_remove", 60);
-        session->set_attribute("foo", "bar");
         storage->store(session);
+        storage->remove(session_id);
+        auto loaded = storage->load(session_id);
+        EXPECT_EQ(loaded, nullptr);
+    }
 
-        storage->remove("to_remove");
-        const auto loaded = storage->load("to_remove");
+    TEST_F(DbSessionStorageTest, ExpiredSessionNotLoaded)
+    {
+        session->set_expiry_time(std::chrono::system_clock::now() + std::chrono::seconds(1));
+        storage->store(session);
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        auto loaded = storage->load(session_id);
         EXPECT_EQ(loaded, nullptr);
     }
 
     TEST_F(DbSessionStorageTest, ClearExpired)
     {
-        const auto session = std::make_shared<Session>("expired_id", 1);
-        session->set_attribute("k", "v");
+        // 存储一个即将过期的session
+        session->set_expiry_time(std::chrono::system_clock::now() + std::chrono::seconds(1));
         storage->store(session);
-
-        // 等待会话过期
         std::this_thread::sleep_for(std::chrono::seconds(2));
         storage->clear_expired();
-
-        const auto loaded = storage->load("expired_id");
+        auto loaded = storage->load(session_id);
         EXPECT_EQ(loaded, nullptr);
     }
 } // namespace zhttp::zsession

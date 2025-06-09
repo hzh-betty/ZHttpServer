@@ -4,7 +4,7 @@
 
 namespace zhttp::zdb
 {
-    class DBException : public std::runtime_error
+    class DBException final : public std::runtime_error
     {
     public:
         explicit DBException(const std::string& message) : std::runtime_error(message) {}

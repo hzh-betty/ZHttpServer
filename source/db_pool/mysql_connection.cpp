@@ -1,12 +1,13 @@
 #include <utility>
-#include "../../include/db_pool/db_connection.h"
+#include "../../include/db_pool/mysql_connection.h"
 #include "../../include/log/logger.h"
+#include"../../include/db_pool/db_exception.h"
 
 namespace zhttp::zdb
 {
-    DbConnection::DbConnection(std::string host, std::string user,
-                               std::string password, std::string database)
-            : host_(std::move(host)), user_(std::move(user)), password_(std::move(password)), database_(std::move(database))
+    MysqlConnection::MysqlConnection(std::string host, std::string user,
+                                     std::string password, std::string database)
+        : host_(std::move(host)), user_(std::move(user)), password_(std::move(password)), database_(std::move(database))
     {
         ZHTTP_LOG_INFO("Creating database connection to {}@{}/{}", user_, host_, database_);
         try
@@ -22,7 +23,7 @@ namespace zhttp::zdb
         }
     }
 
-    DbConnection::~DbConnection()
+    MysqlConnection::~MysqlConnection()
     {
         ZHTTP_LOG_DEBUG("Destroying database connection");
         cleanup();
@@ -30,13 +31,13 @@ namespace zhttp::zdb
     }
 
     // 检查连接是否可用
-    bool DbConnection::ping() const
+    bool MysqlConnection::ping() const
     {
         ZHTTP_LOG_DEBUG("Pinging database connection");
         try
         {
             std::lock_guard<std::mutex> lockGuard(mutex_);
-            if (!connection_) 
+            if (!connection_)
             {
                 ZHTTP_LOG_WARN("Connection is null, ping failed");
                 return false;
@@ -60,25 +61,25 @@ namespace zhttp::zdb
     }
 
     // 检查连接是否可用
-    bool DbConnection::is_valid() const
+    bool MysqlConnection::is_valid() const
     {
         ZHTTP_LOG_DEBUG("Validating database connection");
         try
         {
             std::lock_guard<std::mutex> lockGuard(mutex_);
 
-            if (!connection_) 
+            if (!connection_)
             {
                 ZHTTP_LOG_WARN("Connection is null, validation failed");
                 return false;
             }
-            
+
             std::unique_ptr<sql::Statement> stmt(connection_->createStatement());
 
             // 如果它返回了 resultset，就手动去取：
             if (stmt->execute("SELECT 1"))
             {
-                const std::unique_ptr<sql::ResultSet> rs (stmt->getResultSet());
+                const std::unique_ptr<sql::ResultSet> rs(stmt->getResultSet());
                 while (rs && rs->next())
                 {
                     // 获取结果
@@ -96,7 +97,7 @@ namespace zhttp::zdb
     }
 
     // 重连
-    void DbConnection::reconnect()
+    void MysqlConnection::reconnect()
     {
         ZHTTP_LOG_INFO("Attempting to reconnect to database {}@{}/{}", user_, host_, database_);
         try
@@ -118,7 +119,7 @@ namespace zhttp::zdb
     }
 
     // 清理连接
-    void DbConnection::cleanup()
+    void MysqlConnection::cleanup()
     {
         ZHTTP_LOG_DEBUG("Cleaning up database connection");
         try
@@ -147,12 +148,12 @@ namespace zhttp::zdb
                     }
                     result_count++;
                 }
-                
+
                 if (result_count > 0)
                 {
                     ZHTTP_LOG_DEBUG("Cleaned up {} pending result sets", result_count);
                 }
-                
+
                 ZHTTP_LOG_DEBUG("Database connection cleanup completed");
             }
         }
@@ -172,10 +173,10 @@ namespace zhttp::zdb
     }
 
     // 辅助连接函数
-    void DbConnection::connect_helper()
+    void MysqlConnection::connect_helper()
     {
         ZHTTP_LOG_DEBUG("Establishing database connection");
-        
+
         // 获取数据库驱动
         sql::mysql::MySQL_Driver *driver = sql::mysql::get_mysql_driver_instance();
         ZHTTP_LOG_DEBUG("MySQL driver instance obtained");
@@ -199,7 +200,7 @@ namespace zhttp::zdb
             std::unique_ptr<sql::Statement> stmt(connection_->createStatement());
             stmt->execute("SET NAMES utf8mb4");
             ZHTTP_LOG_DEBUG("Character set configured to utf8mb4");
-            
+
             ZHTTP_LOG_INFO("Database connection fully established and configured");
         }
         else
@@ -208,5 +209,4 @@ namespace zhttp::zdb
             throw DBException("Failed to create database connection");
         }
     }
-
-}// namespace zhttp::zdb
+} // namespace zhttp::zdb

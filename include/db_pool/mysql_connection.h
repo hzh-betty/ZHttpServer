@@ -17,18 +17,18 @@ namespace zhttp::zdb
     // 一次性拉取所有查询结果：行列表，每行是 string 列表
     using QueryResult = std::vector<std::vector<std::string>>;
 
-    class DbConnection
+    class MysqlConnection
     {
     public:
-        DbConnection(std::string host, std::string user,
+        MysqlConnection(std::string host, std::string user,
                      std::string password, std::string database);
 
-        ~DbConnection();
+        ~MysqlConnection();
 
         // 禁止拷贝与赋值
-        DbConnection(const DbConnection &) = delete;
+        MysqlConnection(const MysqlConnection &) = delete;
 
-        DbConnection &operator=(const DbConnection &) = delete;
+        MysqlConnection &operator=(const MysqlConnection &) = delete;
 
         // 判断连接是否有效
         [[nodiscard]] bool is_valid() const;

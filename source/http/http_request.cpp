@@ -1,3 +1,4 @@
+#include "http_request.h"
 #include "../../include/http/http_request.h"
 #include "../../include/log/logger.h"
 #include <algorithm>
@@ -10,7 +11,7 @@ namespace zhttp
     void HttpRequest::set_method(Method method)
     {
         method_ = method;
-        ZHTTP_LOG_DEBUG("HTTP request method set to: {}", get_method_string());
+        ZHTTP_LOG_DEBUG("HTTP request method set to: {}", get_method_string(method_));
     }
 
     HttpRequest::Method HttpRequest::get_method() const
@@ -18,9 +19,9 @@ namespace zhttp
         return method_;
     }
 
-    std::string HttpRequest::get_method_string() const
+    std::string HttpRequest::get_method_string(const HttpRequest::Method method)
     {
-        switch (method_)
+        switch (method)
         {
         case Method::GET:
             return "GET";

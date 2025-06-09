@@ -1,10 +1,10 @@
-#include "../../include/db_pool/db_pool.h"
+#include "../../include/db_pool/mysql_pool.h"
 #include "../../include/log/logger.h"
 
 namespace zhttp::zdb
 {
     // 初始化连接池
-    void DbConnectionPool::init(const std::string &host, const std::string &user,
+    void MysqlConnectionPool::init(const std::string &host, const std::string &user,
                                 const std::string &password, const std::string &database, uint32_t pool_size)
     {
         ZHTTP_LOG_INFO("Initializing database connection pool with {} connections", pool_size);
@@ -30,8 +30,7 @@ namespace zhttp::zdb
             try
             {
                 ZHTTP_LOG_DEBUG("Creating connection {}/{}", i + 1, pool_size);
-                auto conn = create_connection();
-                if (conn)
+                if (auto conn = create_connection())
                 {
                     connections_.emplace(conn);
                     created_connections++;
@@ -52,15 +51,15 @@ namespace zhttp::zdb
                       created_connections, pool_size);
     }
 
-    DbConnectionPool::DbConnectionPool()
+    MysqlConnectionPool::MysqlConnectionPool()
     {
         ZHTTP_LOG_DEBUG("Creating database connection pool instance");
-        check_thread_ = std::thread(&DbConnectionPool::check_connections, this);
+        check_thread_ = std::thread(&MysqlConnectionPool::check_connections, this);
         check_thread_.detach();
         ZHTTP_LOG_DEBUG("Connection health check thread started");
     }
 
-    DbConnectionPool::~DbConnectionPool()
+    MysqlConnectionPool::~MysqlConnectionPool()
     {
         ZHTTP_LOG_INFO("Destroying database connection pool");
         std::lock_guard<std::mutex> lock(mutex_);
@@ -76,11 +75,11 @@ namespace zhttp::zdb
     }
 
     // 获取连接
-    std::shared_ptr<DbConnection> DbConnectionPool::get_connection()
+    std::shared_ptr<MysqlConnection> MysqlConnectionPool::get_connection()
     {
         ZHTTP_LOG_DEBUG("Requesting database connection from pool");
         
-        std::shared_ptr<DbConnection> conn;
+        std::shared_ptr<MysqlConnection> conn;
         {
             std::unique_lock<std::mutex> lock(mutex_);
 
@@ -112,7 +111,7 @@ namespace zhttp::zdb
 
             // 通过定制删除器，确保连接被正确地回收到连接池中
             return {conn.get(),
-                    [this, conn](DbConnection *)
+                    [this, conn](MysqlConnection *)
                     {
                         ZHTTP_LOG_DEBUG("Returning connection to pool");
                         try
@@ -143,12 +142,12 @@ namespace zhttp::zdb
     }
 
     // 创建连接
-    std::shared_ptr<DbConnection> DbConnectionPool::create_connection()
+    std::shared_ptr<MysqlConnection> MysqlConnectionPool::create_connection()
     {
         ZHTTP_LOG_DEBUG("Creating new database connection");
         try
         {
-            auto conn = std::make_shared<DbConnection>(host_, user_, password_, database_);
+            auto conn = std::make_shared<MysqlConnection>(host_, user_, password_, database_);
             ZHTTP_LOG_DEBUG("Database connection created successfully");
             return conn;
         }
@@ -160,7 +159,7 @@ namespace zhttp::zdb
     }
 
     // 修改检查连接的函数
-    void DbConnectionPool::check_connections() const
+    void MysqlConnectionPool::check_connections() const
     {
         ZHTTP_LOG_INFO("Database connection health check thread started");
         
@@ -170,7 +169,7 @@ namespace zhttp::zdb
             {
                 ZHTTP_LOG_DEBUG("Starting connection health check cycle");
                 
-                std::vector<std::shared_ptr<DbConnection>> connsToCheck;
+                std::vector<std::shared_ptr<MysqlConnection>> connsToCheck;
                 {
                     std::unique_lock<std::mutex> lock(mutex_);
                     if (connections_.empty())
@@ -227,7 +226,7 @@ namespace zhttp::zdb
     }
 
     // 获取连接池状态
-    size_t DbConnectionPool::get_pool_size() const
+    size_t MysqlConnectionPool::get_pool_size() const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         size_t size = connections_.size();
@@ -236,7 +235,7 @@ namespace zhttp::zdb
     }
 
     // 获取连接池是否已初始化
-    bool DbConnectionPool::is_initialized() const
+    bool MysqlConnectionPool::is_initialized() const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         ZHTTP_LOG_DEBUG("Pool initialization status: {}", initialized_ ? "true" : "false");

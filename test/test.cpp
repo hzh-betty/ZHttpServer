@@ -12,13 +12,17 @@
 #include "middleware/test_middleware_chain.h"
 #include "middleware/test_cors_middle.h"
 
-#include "db_pool/test_db_connection.h"
-#include "db_pool/test_db_pool.h"
+#include "db_pool/test_mysql_connection.h"
+#include "db_pool/test_mysql_pool.h"
+#include "db_pool/test_redis_connection.h"
+#include "db_pool/test_redis_pool.h"
 
 #include "ssl/test_ssl_config.h"
 
+#include "../../include/log/logger.h"
 int main()
 {
+    zhttp::Log::Init(zlog::LogLevel::value::INFO);
     ::testing::InitGoogleTest();
     return RUN_ALL_TESTS();
 }

@@ -16,11 +16,11 @@ namespace zhttp::zsession
             auto &redis_pool = zdb::RedisConnectionPool::get_instance();
             const auto conn = redis_pool.get_connection();
             const nlohmann::json j = session->get_attributes_json();
-            std::string attrs = j.dump();
-            
-            auto expiry_time = session->get_expiry_time();
-            auto now = std::chrono::system_clock::now();
-            auto ttl = std::chrono::duration_cast<std::chrono::seconds>(expiry_time - now);
+            const std::string attrs = j.dump();
+
+            const auto expiry_time = session->get_expiry_time();
+            const auto now = std::chrono::system_clock::now();
+            const auto ttl = std::chrono::duration_cast<std::chrono::seconds>(expiry_time - now);
             
             if (ttl.count() <= 0)
             {
@@ -28,7 +28,7 @@ namespace zhttp::zsession
                 return;
             }
 
-            std::string key = "session:" + session->get_session_id();
+            const std::string key = "session:" + session->get_session_id();
             
             // 使用Redis Hash存储会话数据
             conn->hset(key, "attributes", attrs);
@@ -58,7 +58,7 @@ namespace zhttp::zsession
         {
             auto &redis_pool = zdb::RedisConnectionPool::get_instance();
             const auto conn = redis_pool.get_connection();
-            std::string key = "session:" + session_id;
+            const std::string key = "session:" + session_id;
             
             // 检查key是否存在
             if (!conn->exists(key))
@@ -75,8 +75,8 @@ namespace zhttp::zsession
                 return nullptr;
             }
 
-            auto attrs_it = result.find("attributes");
-            auto expiry_it = result.find("expiry");
+            const auto attrs_it = result.find("attributes");
+            const auto expiry_it = result.find("expiry");
             
             if (attrs_it == result.end() || expiry_it == result.end())
             {
@@ -85,8 +85,8 @@ namespace zhttp::zsession
             }
 
             // 检查是否过期
-            int64_t expiry = std::stoll(expiry_it->second);
-            auto expiry_time = std::chrono::system_clock::time_point(std::chrono::seconds(expiry));
+            const int64_t expiry = std::stoll(expiry_it->second);
+            const auto expiry_time = std::chrono::system_clock::time_point(std::chrono::seconds(expiry));
             if (expiry_time < std::chrono::system_clock::now())
             {
                 ZHTTP_LOG_WARN("Session {} has expired, removing from Redis", session_id);
@@ -130,10 +130,9 @@ namespace zhttp::zsession
         {
             auto &redis_pool = zdb::RedisConnectionPool::get_instance();
             const auto conn = redis_pool.get_connection();
-            std::string key = "session:" + session_id;
-            
-            bool deleted = conn->del(key);
-            if (deleted)
+            const std::string key = "session:" + session_id;
+
+            if (conn->del(key))
             {
                 ZHTTP_LOG_INFO("Session {} removed from Redis successfully", session_id);
             }
@@ -158,7 +157,7 @@ namespace zhttp::zsession
         {
             auto &redis_pool = zdb::RedisConnectionPool::get_instance();
             const auto conn = redis_pool.get_connection();
-            std::string pattern = "session:*";
+            const std::string pattern = "session:*";
             
             // 使用SCAN命令遍历所有session key
             auto keys = conn->scan_keys(pattern, 100);
@@ -170,16 +169,19 @@ namespace zhttp::zsession
                 {
                     // 获取会话数据检查是否过期
                     auto result = conn->hgetall(key);
-                    auto expiry_it = result.find("expiry");
-                    
-                    if (expiry_it != result.end())
+
+                    if (auto expiry_it = result.find("expiry"); expiry_it != result.end())
                     {
                         int64_t expiry = std::stoll(expiry_it->second);
-                        auto expiry_time = std::chrono::system_clock::time_point(std::chrono::seconds(expiry));
-                        
-                        if (expiry_time < std::chrono::system_clock::now())
+
+                        if (auto expiry_time = std::chrono::system_clock::time_point(std::chrono::seconds(expiry));
+                            expiry_time < std::chrono::system_clock::now())
                         {
-                            conn->del(key);
+                            if (!conn->del(key))
+                            {
+                                ZHTTP_LOG_WARN("Removed session {} from Redis failed", key);
+                                continue;
+                            }
                             removed_count++;
                             ZHTTP_LOG_DEBUG("Removed expired session key: {}", key);
                         }

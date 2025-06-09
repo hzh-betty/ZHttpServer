@@ -1,5 +1,6 @@
 #include "../../include/db_pool/redis_pool.h"
 #include "../../include/log/logger.h"
+#include "../../include/db_pool/db_exception.h"
 
 namespace zhttp::zdb
 {
@@ -52,8 +53,7 @@ namespace zhttp::zdb
             try
             {
                 ZHTTP_LOG_DEBUG("Creating Redis connection {}/{}", i + 1, pool_size);
-                auto conn = create_connection();
-                if (conn)
+                if (auto conn = create_connection())
                 {
                     connections_.emplace(conn);
                     created_connections++;

@@ -44,10 +44,10 @@ namespace zhttp::zdb
 
     private:
         std::string host_;
-        int port_;
+        int port_{};
         std::string password_;
-        int db_;
-        int timeout_ms_;
+        int db_{};
+        int timeout_ms_{};
         std::queue<std::shared_ptr<RedisConnection>> connections_;
         mutable std::mutex mutex_;
         std::condition_variable cv_;

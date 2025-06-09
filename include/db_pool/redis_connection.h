@@ -12,7 +12,7 @@ namespace zhttp::zdb
     class RedisConnection
     {
     public:
-        RedisConnection(std::string host, int port = 6379, std::string password = "", 
+        explicit RedisConnection(std::string host, int port = 6379, std::string password = "", 
                        int db = 0, int timeout_ms = 5000);
 
         ~RedisConnection();
@@ -28,28 +28,28 @@ namespace zhttp::zdb
         void reconnect();
 
         // 清理
-        void cleanup();
+        void cleanup() const;
 
         // 检测连接是否有效
         bool ping() const;
 
         // Redis操作接口
-        void set(const std::string &key, const std::string &value, std::chrono::seconds ttl = std::chrono::seconds(0));
-        std::string get(const std::string &key);
-        bool exists(const std::string &key);
-        bool del(const std::string &key);
-        void hset(const std::string &key, const std::string &field, const std::string &value);
-        std::string hget(const std::string &key, const std::string &field);
-        std::unordered_map<std::string, std::string> hgetall(const std::string &key);
-        void expire(const std::string &key, std::chrono::seconds ttl);
-        std::vector<std::string> scan_keys(const std::string &pattern, size_t count = 100);
+        void set(const std::string &key, const std::string &value, std::chrono::seconds ttl = std::chrono::seconds(0)) const;
+        std::string get(const std::string &key) const;
+        bool exists(const std::string &key) const;
+        bool del(const std::string &key) const;
+        void hset(const std::string &key, const std::string &field, const std::string &value) const;
+        std::string hget(const std::string &key, const std::string &field) const;
+        std::unordered_map<std::string, std::string> hgetall(const std::string &key) const;
+        void expire(const std::string &key, std::chrono::seconds ttl) const;
+        std::vector<std::string> scan_keys(const std::string &pattern, size_t count = 100) const;
 
     private:
         // 辅助连接并配置
         void connect_helper();
 
     private:
-        std::unique_ptr<sw::redis::Redis> redis_; // Redis连接
+        std::unique_ptr<sw::redis::Redis> redis_{}; // Redis连接
         std::string host_;
         int port_;
         std::string password_;

@@ -1,33 +1,33 @@
 #pragma once
 
-#include "../../include/db_pool/db_pool.h"
+#include "../../include/db_pool/mysql_pool.h"
 #include <gtest/gtest.h>
 #include <thread>
 #include <vector>
 
 namespace zhttp::zdb
 {
-    class DbConnectionPoolTest : public ::testing::Test
+    class MysqlConnectionPoolTest : public ::testing::Test
     {
     protected:
         void SetUp() override
         {
-            DbConnectionPool::get_instance().init(HOST, USER, PASSWORD, DATABASE, 8);
+            MysqlConnectionPool::get_instance().init(HOST, USER, PASSWORD, DATABASE, 8);
         }
     };
 
     // 测试获取连接是否成功
-    TEST_F(DbConnectionPoolTest, CanGetConnection)
+    TEST_F(MysqlConnectionPoolTest, CanGetConnection)
     {
-        auto conn = DbConnectionPool::get_instance().get_connection();
+        auto conn = MysqlConnectionPool::get_instance().get_connection();
         ASSERT_NE(conn, nullptr);
         ASSERT_TRUE(conn->is_valid());
     }
 
     // 测试 execute_query 能否正常工作
-    TEST_F(DbConnectionPoolTest, CanExecuteSimpleQuery)
+    TEST_F(MysqlConnectionPoolTest, CanExecuteSimpleQuery)
     {
-        auto conn = DbConnectionPool::get_instance().get_connection();
+        auto conn = MysqlConnectionPool::get_instance().get_connection();
         auto result = conn->execute_query("SELECT 1");
         ASSERT_EQ(result.size(), 1);
         ASSERT_EQ(result[0].size(), 1);
@@ -35,22 +35,22 @@ namespace zhttp::zdb
     }
 
     // 测试连接是否自动回收
-    TEST_F(DbConnectionPoolTest, ConnectionAutoRecycle)
+    TEST_F(MysqlConnectionPoolTest, ConnectionAutoRecycle)
     {
         {
-            auto conn = DbConnectionPool::get_instance().get_connection();
+            auto conn = MysqlConnectionPool::get_instance().get_connection();
             ASSERT_TRUE(conn->is_valid());
         } // 作用域结束，连接应被回收
 
         // 再次获取
-        auto conn2 = DbConnectionPool::get_instance().get_connection();
+        auto conn2 = MysqlConnectionPool::get_instance().get_connection();
         ASSERT_TRUE(conn2->is_valid());
     }
 
     // 测试连接失效后能否自动重连
-    TEST_F(DbConnectionPoolTest, ReconnectAfterFailure)
+    TEST_F(MysqlConnectionPoolTest, ReconnectAfterFailure)
     {
-        auto conn = DbConnectionPool::get_instance().get_connection();
+        auto conn = MysqlConnectionPool::get_instance().get_connection();
         // 模拟失效：直接重连
         conn->reconnect();
         ASSERT_TRUE(conn->is_valid());
@@ -58,7 +58,7 @@ namespace zhttp::zdb
 
 
     // 压力测试：并发获取连接并执行 SQL
-    TEST_F(DbConnectionPoolTest, StressTestWithMultipleThreads)
+    TEST_F(MysqlConnectionPoolTest, StressTestWithMultipleThreads)
     {
         constexpr int THREAD_COUNT = 10;
         constexpr int TASKS_PER_THREAD = 500;
@@ -75,7 +75,7 @@ namespace zhttp::zdb
 
                                          try
                                          {
-                                             auto conn = DbConnectionPool::get_instance().get_connection();
+                                             auto conn = MysqlConnectionPool::get_instance().get_connection();
                                              auto res = conn->execute_query("SELECT 1");
                                              if (!res.empty() && res[0][0] == "1")
                                              {

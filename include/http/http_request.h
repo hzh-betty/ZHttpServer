@@ -32,7 +32,7 @@ namespace zhttp
         // 设置与获取请求方法
         void set_method(Method method);
         Method get_method() const ;
-        std::string get_method_string() const;
+        static std::string get_method_string(HttpRequest::Method method);
 
         // 设置与获取请求路径
         void set_path(const std::string_view &path);
