@@ -24,6 +24,7 @@ namespace zhttp::zsession
     template<typename StorgeType, typename... Args>
     class StorageFactory
     {
+    public:
         static std::shared_ptr<Storage> create(Args &&... args)
         {
             return std::make_shared<StorgeType>(std::forward<Args>(args)...);

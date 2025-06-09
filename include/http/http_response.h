@@ -26,6 +26,7 @@ namespace zhttp
             Unauthorized = 401,
             Forbidden = 403,
             NotFound = 404,
+            Conflict = 409,
             RangeNotSatisfiable = 416,
             InternalServerError = 500,
             NotImplemented = 501,
