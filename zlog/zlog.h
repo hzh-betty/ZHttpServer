@@ -13,17 +13,17 @@ namespace zlog
     }
 
 // 2. 通过宏函数对日志器的接口进行代理
-#define debug(fmt, ...) logImpl(zlog::LogLevel::value::DEBUG, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define info(fmt, ...) logImpl(zlog::LogLevel::value::INFO, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define warn(fmt, ...) logImpl(zlog::LogLevel::value::WARNING, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define error(fmt, ...) logImpl(zlog::LogLevel::value::ERROR, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define fatal(fmt, ...) logImpl(zlog::LogLevel::value::FATAL, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define ZLOG_DEBUG(fmt, ...) logImpl(zlog::LogLevel::value::DEBUG, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define ZLOG_INFO(fmt, ...) logImpl(zlog::LogLevel::value::INFO, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define ZLOG_WARN(fmt, ...) logImpl(zlog::LogLevel::value::WARNING, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define ZLOG_ERROR(fmt, ...) logImpl(zlog::LogLevel::value::ERROR, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define ZLOG_FATAL(fmt, ...) logImpl(zlog::LogLevel::value::FATAL, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
 // 3. 提供宏函数，直接通过默认日志器打印
-#define DEBUG(fmt, ...) zlog::rootLogger()->debug(fmt, ##__VA_ARGS__)
-#define INFO(fmt, ...) zlog::rootLogger()->info(fmt, ##__VA_ARGS__)
-#define WARN(fmt, ...) zlog::rootLogger()->warn(fmt, ##__VA_ARGS__)
-#define ERROR(fmt, ...) zlog::rootLogger()->error(fmt, ##__VA_ARGS__)
-#define FATAL(fmt, ...) zlog::rootLogger()->fatal(fmt, ##__VA_ARGS__)
+#define DEBUG(fmt, ...) zlog::rootLogger()->ZLOG_DEBUG(fmt, ##__VA_ARGS__)
+#define INFO(fmt, ...) zlog::rootLogger()->ZLOG_INFO(fmt, ##__VA_ARGS__)
+#define WARN(fmt, ...) zlog::rootLogger()->ZLOG_WARN(fmt, ##__VA_ARGS__)
+#define ERROR(fmt, ...) zlog::rootLogger()->ZLOG_ERROR(fmt, ##__VA_ARGS__)
+#define FATAL(fmt, ...) zlog::rootLogger()->ZLOG_FATAL(fmt, ##__VA_ARGS__)
 
 };

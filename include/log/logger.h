@@ -19,9 +19,9 @@ namespace zhttp
     };
 
     // 便利的日志宏定义 - 使用fmt库格式
-#define ZHTTP_LOG_DEBUG(fmt, ...) zhttp::http_logger->debug(fmt, ##__VA_ARGS__)
-#define ZHTTP_LOG_INFO(fmt, ...)  zhttp::http_logger->info(fmt, ##__VA_ARGS__)
-#define ZHTTP_LOG_WARN(fmt, ...)  zhttp::http_logger->warn(fmt, ##__VA_ARGS__)
-#define ZHTTP_LOG_ERROR(fmt, ...)  zhttp::http_logger->error(fmt, ##__VA_ARGS__)
-#define ZHTTP_LOG_FATAL(fmt, ...)  zhttp::http_logger->fatal(fmt, ##__VA_ARGS__)
+#define ZHTTP_LOG_DEBUG(fmt, ...) zhttp::http_logger->ZLOG_DEBUG(fmt, ##__VA_ARGS__)
+#define ZHTTP_LOG_INFO(fmt, ...)  zhttp::http_logger->ZLOG_INFO(fmt, ##__VA_ARGS__)
+#define ZHTTP_LOG_WARN(fmt, ...)  zhttp::http_logger->ZLOG_WARN(fmt, ##__VA_ARGS__)
+#define ZHTTP_LOG_ERROR(fmt, ...)  zhttp::http_logger->ZLOG_ERROR(fmt, ##__VA_ARGS__)
+#define ZHTTP_LOG_FATAL(fmt, ...)  zhttp::http_logger->ZLOG_FATAL(fmt, ##__VA_ARGS__)
 };

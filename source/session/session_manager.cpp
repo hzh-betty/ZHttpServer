@@ -56,7 +56,7 @@ namespace zhttp::zsession
     }
 
     // 设置会话存储
-    void SessionManager::set_session_storage(std::unique_ptr<Storage> &&session_storage)
+    void SessionManager::set_session_storage(std::shared_ptr<Storage> &&session_storage)
     {
         ZHTTP_LOG_INFO("Setting custom session storage");
         std::unique_lock<std::shared_mutex> lock(rb_mutex_);
