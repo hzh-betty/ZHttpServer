@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <gtest/gtest.h>
@@ -22,8 +21,8 @@ namespace zhttp::zssl
         // 验证默认SSL版本
         ASSERT_EQ(config.get_version(), SslVersion::TLS_1_2);
 
-        // 验证默认密码套件
-        ASSERT_EQ(config.get_cipher_list(), "HIGH:!aNULL:!MDS");
+        // 验证默认密码套件 - 修复拼写错误
+        ASSERT_EQ(config.get_cipher_list(), "HIGH:!aNULL:!MD5");
 
         // 验证默认禁用对端验证
         ASSERT_FALSE(config.get_verify_peer());

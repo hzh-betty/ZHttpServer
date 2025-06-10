@@ -31,7 +31,12 @@ namespace zhttp
         if (is_ssl_)
         {
             ZHTTP_LOG_INFO("SSL is enabled, setting up SSL context");
-            //set_ssl_context();
+            // 确保SSL上下文已设置
+            if (!ssl_context_)
+            {
+                ZHTTP_LOG_ERROR("SSL context not initialized");
+                abort();
+            }
         }
         server_->start();
         ZHTTP_LOG_INFO("Server started, entering event loop");
@@ -299,7 +304,6 @@ namespace zhttp
         HttpResponse response;
         response.set_keep_alive(!close);
 
-        // 判断是否为跨域请求（有 Origin 字段）
         const std::string &origin = request.get_header("Origin");
         if (!origin.empty()) {
             ZHTTP_LOG_DEBUG("CORS request detected, origin: {}", origin);

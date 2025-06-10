@@ -18,7 +18,7 @@ int main()
         builder->build_name("HttpServer");
         builder->build_use_ssl(true);
         builder->build_thread_num(4);
-        builder->build_middleware(zhttp::zmiddleware::MiddlewareFactory::create<zhttp::zmiddleware::CorsMiddleware>());
+        // builder->build_middleware(zhttp::zmiddleware::MiddlewareFactory::create<zhttp::zmiddleware::CorsMiddleware>());
         auto serverPtr = builder->build();
 
         ZHTTP_LOG_INFO("Server built successfully, registering routes");

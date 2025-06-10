@@ -21,30 +21,38 @@ namespace zhttp::zssl
           read_bio_(nullptr),
           write_bio_(nullptr), message_callback_(nullptr)
     {
-        ZHTTP_LOG_DEBUG("SslConnection: constructing for peer {}", connection_->peerAddress().toIpPort());
+        ZHTTP_LOG_DEBUG("Creating SSL connection for: {}", connection_->peerAddress().toIpPort().c_str());
+        
+        // 创建 SSL 对象
         ssl_ = SSL_new(context_->get_context());
         if (!ssl_)
         {
-            ZHTTP_LOG_ERROR("SslConnection: Failed to create SSL object: {}", ERR_error_string(ERR_get_error(), nullptr));
+            ZHTTP_LOG_ERROR("Failed to create SSL object: {}", ERR_error_string(ERR_get_error(), nullptr));
             return;
         }
 
+        // 创建 BIO
         read_bio_ = BIO_new(BIO_s_mem());
         write_bio_ = BIO_new(BIO_s_mem());
 
         if (!read_bio_ || !write_bio_)
         {
-            ZHTTP_LOG_ERROR("SslConnection: Failed to create BIO objects for peer {}", connection_->peerAddress().toIpPort());
+            ZHTTP_LOG_ERROR("Failed to create BIO objects for connection: {}", 
+                          connection_->peerAddress().toIpPort().c_str());
             SSL_free(ssl_);
             ssl_ = nullptr;
             return;
         }
 
+        // 设置 BIO
         SSL_set_bio(ssl_, read_bio_, write_bio_);
-        SSL_set_accept_state(ssl_);
+        SSL_set_accept_state(ssl_); // 设置为服务器模式
+
+        // 设置非阻塞 IO
         SSL_set_mode(ssl_, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
         SSL_set_mode(ssl_, SSL_MODE_ENABLE_PARTIAL_WRITE);
 
+        // 收到数据时，调用此回调
         connection_->setMessageCallback(
             [this](auto &&PH1, auto &&PH2, auto &&PH3)
             {
@@ -52,23 +60,26 @@ namespace zhttp::zssl
                         std::forward<decltype(PH3)>(PH3));
             });
 
-        ZHTTP_LOG_INFO("SslConnection: SSL connection created for peer {}", connection_->peerAddress().toIpPort());
+        ZHTTP_LOG_INFO("SSL connection created successfully for: {}", 
+                      connection_->peerAddress().toIpPort().c_str());
     }
 
     SslConnection::~SslConnection()
     {
-        ZHTTP_LOG_DEBUG("SslConnection: destructing for peer {}", connection_->peerAddress().toIpPort());
+        ZHTTP_LOG_DEBUG("Destroying SSL connection for: {}", 
+                       connection_->peerAddress().toIpPort().c_str());
         if (ssl_)
         {
-            SSL_free(ssl_);
+            SSL_free(ssl_); // 这会同时释放 BIO
         }
     }
 
     // 处理 SSL 握手
     void SslConnection::handshake()
     {
-        ZHTTP_LOG_DEBUG("SslConnection: handshake start for peer {}", connection_->peerAddress().toIpPort());
-        SSL_set_accept_state(ssl_);
+        ZHTTP_LOG_DEBUG("Starting SSL handshake for: {}", 
+                       connection_->peerAddress().toIpPort().c_str());
+        SSL_set_accept_state(ssl_); // 设置为服务器模式
         handle_handshake();
     }
 
@@ -77,11 +88,18 @@ namespace zhttp::zssl
     {
         if (state_ != SslState::ESTABLISHED)
         {
-            ZHTTP_LOG_ERROR("SslConnection: Cannot send data before handshake for peer {}", connection_->peerAddress().toIpPort());
+            ZHTTP_LOG_ERROR("Cannot send data before SSL handshake is complete for: {}", 
+                          connection_->peerAddress().toIpPort().c_str());
             return;
         }
-        ZHTTP_LOG_DEBUG("SslConnection: sending {} bytes (will encrypt) to peer {}", len, connection_->peerAddress().toIpPort());
+
+        ZHTTP_LOG_DEBUG("Sending {} bytes of encrypted data to: {}", 
+                       len, connection_->peerAddress().toIpPort().c_str());
+        
+        // 加密数据
         on_encrypted(data, len);
+
+        // 将加密数据取出并通过 TCP 发送
         drain_write_bio();
     }
 
@@ -90,9 +108,11 @@ namespace zhttp::zssl
     {
         // 1. 写入所有接收到的加密数据到读 BIO
         receive_time_ = time;
+
         if (const int n = static_cast<int>(buf->readableBytes()); n > 0)
         {
-            ZHTTP_LOG_DEBUG("SslConnection: received {} bytes encrypted data from peer {}", n, conn->peerAddress().toIpPort());
+            ZHTTP_LOG_DEBUG("Received {} bytes of encrypted data from: {}", 
+                           n, conn->peerAddress().toIpPort().c_str());
             BIO_write(read_bio_, buf->peek(), n);
             buf->retrieve(n);
         }
@@ -100,14 +120,14 @@ namespace zhttp::zssl
         // 2. 握手阶段
         if (state_ == SslState::HANDSHAKE)
         {
-            ZHTTP_LOG_DEBUG("SslConnection: in handshake state, handling handshake for peer {}", conn->peerAddress().toIpPort());
             handle_handshake();
             return;
         }
 
         if (state_ != SslState::ESTABLISHED)
         {
-            ZHTTP_LOG_ERROR("SslConnection: handshake failed for peer {}", conn->peerAddress().toIpPort());
+            ZHTTP_LOG_ERROR("SSL handshake failed for: {}", 
+                          conn->peerAddress().toIpPort().c_str());
             return;
         }
 
@@ -115,7 +135,8 @@ namespace zhttp::zssl
         on_decrypted();
         if (message_callback_ && decrypted_buffer_.readableBytes() > 0)
         {
-            ZHTTP_LOG_DEBUG("SslConnection: invoking message callback with {} bytes decrypted data for peer {}", decrypted_buffer_.readableBytes(), conn->peerAddress().toIpPort());
+            ZHTTP_LOG_DEBUG("Calling message callback with {} bytes of decrypted data", 
+                           decrypted_buffer_.readableBytes());
             message_callback_(connection_, &decrypted_buffer_, receive_time_);
         }
     }
@@ -126,29 +147,43 @@ namespace zhttp::zssl
         if (ret == 1)
         {
             state_ = SslState::ESTABLISHED;
-            ZHTTP_LOG_INFO("SslConnection: handshake completed for peer {}", connection_->peerAddress().toIpPort());
-            ZHTTP_LOG_INFO("SslConnection: cipher={}, version={}", SSL_get_cipher(ssl_), SSL_get_version(ssl_));
+            ZHTTP_LOG_INFO("SSL handshake completed successfully for: {}", 
+                          connection_->peerAddress().toIpPort().c_str());
+            ZHTTP_LOG_INFO("Using cipher: {}", SSL_get_cipher(ssl_));
+            ZHTTP_LOG_INFO("Protocol version: {}", SSL_get_version(ssl_));
+
+            // 握手完成后，确保设置正确回调
             if (!message_callback_)
             {
-                ZHTTP_LOG_WARN("SslConnection: no message callback set after handshake for peer {}", connection_->peerAddress().toIpPort());
+                ZHTTP_LOG_WARN("No message callback set after SSL handshake for: {}", 
+                              connection_->peerAddress().toIpPort().c_str());
             }
+
+            //  解密报文，并向回调给上层on_message处理
             on_decrypted();
             if (message_callback_ && decrypted_buffer_.readableBytes() > 0)
+            {
                 message_callback_(connection_, &decrypted_buffer_, receive_time_);
+            }
+
             return;
         }
 
         if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ)
         {
-            ZHTTP_LOG_DEBUG("SslConnection: handshake needs more data (WANT_READ/WRITE) for peer {}", connection_->peerAddress().toIpPort());
+            ZHTTP_LOG_DEBUG("SSL handshake needs more data (WANT_READ/WANT_WRITE) for: {}", 
+                           connection_->peerAddress().toIpPort().c_str());
+            // 还有握手数据要发
             drain_write_bio();
             return;
         }
 
+        // 握手失败
         const unsigned long ecode = ERR_get_error();
         char err_buf[256];
         ERR_error_string_n(ecode, err_buf, sizeof(err_buf));
-        ZHTTP_LOG_ERROR("SslConnection: handshake failed for peer {}: {}", connection_->peerAddress().toIpPort(), err_buf);
+        ZHTTP_LOG_ERROR("SSL handshake failed for {}: {}", 
+                       connection_->peerAddress().toIpPort().c_str(), err_buf);
         connection_->shutdown();
     }
 
@@ -169,7 +204,8 @@ namespace zhttp::zssl
         }
         if (total_sent > 0)
         {
-            ZHTTP_LOG_DEBUG("SslConnection: sent {} bytes encrypted data to peer {}", total_sent, connection_->peerAddress().toIpPort());
+            ZHTTP_LOG_DEBUG("Sent {} bytes of encrypted data to: {}", 
+                           total_sent, connection_->peerAddress().toIpPort().c_str());
         }
     }
 
@@ -179,10 +215,14 @@ namespace zhttp::zssl
         if (const int written = SSL_write(ssl_, data, static_cast<int>(len)); written <= 0)
         {
             const int err = SSL_get_error(ssl_, written);
-            ZHTTP_LOG_ERROR("SslConnection: SSL_write failed for peer {}: {}", connection_->peerAddress().toIpPort(), ERR_error_string(err, nullptr));
+            ZHTTP_LOG_ERROR("SSL_write failed for {}: {}", 
+                          connection_->peerAddress().toIpPort().c_str(), 
+                          ERR_error_string(err, nullptr));
             return;
         }
-        ZHTTP_LOG_DEBUG("SslConnection: encrypted {} bytes for peer {}", len, connection_->peerAddress().toIpPort());
+
+        ZHTTP_LOG_DEBUG("Encrypted {} bytes successfully for: {}", 
+                       len, connection_->peerAddress().toIpPort().c_str());
     }
 
     void SslConnection::on_decrypted()
@@ -200,14 +240,17 @@ namespace zhttp::zssl
             }
             if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_READ)
             {
+                // 明文读完，等待新的密文
                 break;
             }
+            // 其他错误
             handle_error(get_last_error(ret));
             break;
         }
         if (total_decrypted > 0)
         {
-            ZHTTP_LOG_DEBUG("SslConnection: decrypted {} bytes for peer {}", total_decrypted, connection_->peerAddress().toIpPort());
+            ZHTTP_LOG_DEBUG("Decrypted {} bytes successfully for: {}", 
+                           total_decrypted, connection_->peerAddress().toIpPort().c_str());
         }
     }
 
@@ -233,18 +276,20 @@ namespace zhttp::zssl
     void SslConnection::handle_error(SslError error)
     {
         const std::string peer_addr = connection_->peerAddress().toIpPort();
+        
         switch (error)
         {
             case SslError::WANT_READ:
-                ZHTTP_LOG_DEBUG("SslConnection: SSL needs more input data for peer {}", peer_addr);
+                ZHTTP_LOG_DEBUG("SSL needs more input data for: {}", peer_addr.c_str());
                 break;
             case SslError::WANT_WRITE:
-                ZHTTP_LOG_DEBUG("SslConnection: SSL needs to write more data for peer {}", peer_addr);
+                ZHTTP_LOG_DEBUG("SSL needs to write more data for: {}", peer_addr.c_str());
                 break;
             case SslError::SSL:
             case SslError::SYSCALL:
             case SslError::UNKNOWN:
-                ZHTTP_LOG_ERROR("SslConnection: SSL error occurred for peer {}: {}", peer_addr, ERR_error_string(ERR_get_error(), nullptr));
+                ZHTTP_LOG_ERROR("SSL error occurred for {}: {}", 
+                              peer_addr.c_str(), ERR_error_string(ERR_get_error(), nullptr));
                 state_ = SslState::ERROR;
                 connection_->shutdown();
                 break;
@@ -293,7 +338,8 @@ namespace zhttp::zssl
     void SslConnection::set_message_callback(const MessageCallback &cb)
     {
         message_callback_ = cb;
-        ZHTTP_LOG_DEBUG("SslConnection: message callback set for peer {}", connection_->peerAddress().toIpPort());
+        ZHTTP_LOG_DEBUG("Message callback set for SSL connection: {}", 
+                       connection_->peerAddress().toIpPort().c_str());
     }
 
     bool SslConnection::is_handshake_completed() const

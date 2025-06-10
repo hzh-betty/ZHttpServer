@@ -6,7 +6,7 @@ namespace zhttp::zssl
 {
     SslConfig::SslConfig()
     :version_(SslVersion::TLS_1_2)
-    ,cipher_list_("HIGH:!aNULL:!MDS")
+    ,cipher_list_("HIGH:!aNULL:!MDS") 
     ,verify_peer_(false)
     ,verify_depth_(4)
     ,session_timeout_(300)
