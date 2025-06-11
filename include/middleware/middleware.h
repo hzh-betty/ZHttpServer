@@ -26,14 +26,4 @@ namespace zhttp::zmiddleware
         std::shared_ptr<Middleware> next_middleware_; // 下一个中间件
     };
 
-    // 简单工厂模式
-    class MiddlewareFactory
-    {
-    public:
-        template<typename MiddlewareType, typename... Args>
-        static std::shared_ptr<Middleware> create(Args &&... args)
-        {
-            return std::make_shared<MiddlewareType>(std::forward<Args>(args)...);
-        }
-    };
 } // namespace zhttp::zmiddleware

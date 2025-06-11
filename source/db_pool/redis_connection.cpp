@@ -9,12 +9,12 @@ namespace zhttp::zdb
         : host_(std::move(host)), port_(port), password_(std::move(password)), 
           db_(db), timeout_ms_(timeout_ms)
     {
-        ZHTTP_LOG_INFO("Creating Redis connection to {}:{}/{}", host_, port_, db_);
+        ZHTTP_LOG_DEBUG("Creating Redis connection to {}:{}/{}", host_, port_, db_);
         try
         {
             std::lock_guard<std::mutex> lockGuard(mutex_);
             connect_helper();
-            ZHTTP_LOG_INFO("Redis connection created successfully");
+            ZHTTP_LOG_DEBUG("Redis connection created successfully");
         }
         catch (const std::exception &e)
         {
