@@ -278,7 +278,7 @@ namespace zhttp
                 oss << src[i];
             }
         }
-        ZHTTP_LOG_INFO("URL decoded: '{}'", oss.str());
+        ZHTTP_LOG_DEBUG("URL decoded: '{}'", oss.str());
         return oss.str();
     }
 } // namespace zhttp
