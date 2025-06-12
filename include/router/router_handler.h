@@ -8,6 +8,8 @@ namespace zhttp::zrouter
     class RouterHandler
     {
     public:
+        using ptr = std::shared_ptr<RouterHandler>;    
+
         virtual ~RouterHandler() = default;
 
         // 处理请求

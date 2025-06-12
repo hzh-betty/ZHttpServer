@@ -99,7 +99,7 @@ namespace zlog
     };
 
 
-    inline thread_local threadId id_cached = threadId();
+    inline thread_local std::thread::id id_cached{};
     inline thread_local std::string tidStr;
     class ThreadIdFormatItem : public FormatItem
     {
@@ -107,9 +107,10 @@ namespace zlog
         void format(fmt::memory_buffer &buffer, const LogMessage &msg) override
         {
             // 转换为字符串
-            if(id_cached == threadId())
+            auto current_id = std::this_thread::get_id();
+            if(id_cached != current_id)
             {
-                id_cached = std::this_thread::get_id();
+                id_cached = current_id;
                 std::stringstream ss;
                 ss << id_cached;
                 tidStr = ss.str();

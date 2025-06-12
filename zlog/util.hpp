@@ -65,13 +65,16 @@ namespace zlog
                 pos = pathname.find_first_of("/\\", index);
                 if (pos == std::string::npos)
                 {
-                    makeDir(pathname);
+                    if (!exists(pathname))
+                    {
+                        makeDir(pathname);
+                    }
                     break;
                 }
                 std::string parentPath = pathname.substr(0, pos + 1);
                 if (!exists(parentPath))
                 {
-                    makeDir(pathname);
+                    makeDir(parentPath);
                 }
                 index = pos + 1;
             }

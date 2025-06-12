@@ -76,6 +76,9 @@ test_output/
 *.gch
 *.pch
 
+# 库文件目录
+/lib/
+
 # 压缩包
 *.tar.gz
 *.zip
