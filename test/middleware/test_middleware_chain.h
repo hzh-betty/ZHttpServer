@@ -1,6 +1,6 @@
 #pragma  once
 
-#include "../../include/middleware/middleware_chain.h"
+#include "middleware/middleware_chain.h"
 #include <gtest/gtest.h>
 #include <memory>
 

@@ -1,5 +1,5 @@
-#include "../../ssl/ssl_context.h"
-#include "../../include/log/logger.h"
+#include "ssl/ssl_context.h"
+#include "log/http_logger.h"
 #include <openssl/err.h>
 
 namespace zhttp::zssl

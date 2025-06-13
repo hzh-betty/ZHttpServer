@@ -9,7 +9,7 @@
 #include <cppconn/resultset.h>
 #include <mysql_driver.h>
 #include <mysql/mysql.h>
-#include "../log/logger.h"
+#include "log/http_logger.h"
 #include "db_exception.h"
 
 namespace zhttp::zdb

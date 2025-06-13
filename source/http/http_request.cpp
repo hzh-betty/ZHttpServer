@@ -1,9 +1,7 @@
-#include "http_request.h"
-#include "../../include/http/http_request.h"
-#include "../../include/log/logger.h"
+#include "http/http_request.h"
+#include "log/http_logger.h"
 #include <algorithm>
 #include <cctype>
-#include "http_request.h"
 
 namespace zhttp
 {
@@ -282,3 +280,4 @@ namespace zhttp
         return oss.str();
     }
 } // namespace zhttp
+

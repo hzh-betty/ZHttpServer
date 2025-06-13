@@ -1,5 +1,5 @@
-#include "../../include/db_pool/mysql_pool.h"
-#include "../../include/log/logger.h"
+#include "db_pool/mysql_pool.h"
+#include "log/http_logger.h"
 
 namespace zhttp::zdb
 {

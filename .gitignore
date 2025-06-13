@@ -17,6 +17,7 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 *.cmake
+!CMakeLists.txt
 
 # 自动生成的文件（如Qt的moc/uic生成）
 moc_*.cpp
@@ -71,6 +72,11 @@ vcpkg_installed/
 coverage/
 test_output/
 
+### CMake生成文件 ###
+CTestTestfile.cmake
+DartConfiguration.tcl
+Testing/
+
 ### 其他生成文件 ###
 # 预编译头文件
 *.gch
@@ -82,3 +88,6 @@ test_output/
 # 压缩包
 *.tar.gz
 *.zip
+
+# CMake安装目录
+install_manifest.txt

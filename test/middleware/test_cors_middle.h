@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../include/middleware/cors/cors_middle.h"
+#include "middleware/cors/cors_middle.h"
 #include <gtest/gtest.h>
 
 namespace zhttp::zmiddleware

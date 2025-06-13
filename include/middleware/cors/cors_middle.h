@@ -1,7 +1,7 @@
 #pragma once
 #include "../middleware.h"
-#include "../../http/http_request.h"
-#include "../../http/http_response.h"
+#include "http/http_request.h"
+#include "http/http_response.h"
 #include "cors_config.h"
 
 namespace zhttp::zmiddleware

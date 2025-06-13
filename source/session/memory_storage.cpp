@@ -1,5 +1,5 @@
-#include "../../include/session/memory_storage.h"
-#include "../../include/log/logger.h"
+#include "session/memory_storage.h"
+#include "log/http_logger.h"
 
 namespace zhttp::zsession
 {

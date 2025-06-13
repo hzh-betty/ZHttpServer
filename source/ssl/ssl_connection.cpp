@@ -1,5 +1,5 @@
-#include "../../ssl/ssl_connection.h"
-#include "../../include/log/logger.h"
+#include "ssl/ssl_connection.h"
+#include "log/http_logger.h"
 #include <openssl/err.h>
 
 #include <utility>

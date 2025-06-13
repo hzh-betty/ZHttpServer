@@ -1,5 +1,5 @@
 #pragma once
-#include "../../include/session/memory_storage.h"
+#include "session/memory_storage.h"
 #include <thread>
 #include <gtest/gtest.h>
 

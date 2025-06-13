@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gtest/gtest.h>
-#include "../../include/router/router.h"
+#include "router/router.h"
 
 namespace zhttp::zrouter
 {

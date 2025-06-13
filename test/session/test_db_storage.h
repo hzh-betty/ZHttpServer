@@ -1,8 +1,8 @@
 #pragma once
 #include <gtest/gtest.h>
-#include "../../include/db_pool/redis_pool.h"
-#include "../../include/session/db_storage.h"
-#include "../../include/session/session.h"
+#include "db_pool/redis_pool.h"
+#include "session/db_storage.h"
+#include "session/session.h"
 #include <thread>
 #include <chrono>
 

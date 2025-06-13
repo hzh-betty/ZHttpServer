@@ -1,6 +1,6 @@
-#include "../../include/session/db_storage.h"
-#include "../../include/db_pool/redis_pool.h"
-#include "../../include/log/logger.h"
+#include "session/db_storage.h"
+#include "db_pool/redis_pool.h"
+#include "log/http_logger.h"
 #include <nlohmann/json.hpp>
 #include <chrono>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../include/db_pool/mysql_pool.h"
+#include "db_pool/mysql_pool.h"
 #include <gtest/gtest.h>
 #include <thread>
 #include <vector>

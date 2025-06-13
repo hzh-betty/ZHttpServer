@@ -1,6 +1,6 @@
 #pragma once
 #include <gtest/gtest.h>
-#include "../../include/db_pool/redis_pool.h"
+#include "db_pool/redis_pool.h"
 #include <thread>
 #include <chrono>
 #include <atomic>

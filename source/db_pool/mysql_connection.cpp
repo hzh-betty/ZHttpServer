@@ -1,7 +1,7 @@
 #include <utility>
-#include "../../include/db_pool/mysql_connection.h"
-#include "../../include/log/logger.h"
-#include"../../include/db_pool/db_exception.h"
+#include "db_pool/mysql_connection.h"
+#include "log/http_logger.h"
+#include "db_pool/db_exception.h"
 
 namespace zhttp::zdb
 {

@@ -1,5 +1,5 @@
-#include "../../include/middleware/middleware_chain.h"
-#include "../../include/log/logger.h"
+#include "middleware/middleware_chain.h"
+#include "log/http_logger.h"
 
 namespace zhttp::zmiddleware
 {

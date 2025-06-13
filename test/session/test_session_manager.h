@@ -1,5 +1,5 @@
 #pragma once
-#include "../../include/session/session_manager.h"
+#include "session/session_manager.h"
 #include <gtest/gtest.h>
 #include <thread>
 

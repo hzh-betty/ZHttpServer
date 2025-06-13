@@ -2,8 +2,8 @@
 #include "session.h"
 #include "memory_storage.h"
 #include "db_storage.h"
-#include "../http/http_request.h"
-#include "../http/http_response.h"
+#include "http/http_request.h"
+#include "http/http_response.h"
 #include <random>
 #include <shared_mutex>
 

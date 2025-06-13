@@ -19,7 +19,7 @@
 
 #include "ssl/test_ssl_config.h"
 
-#include "../../include/log/logger.h"
+#include "log/http_logger.h"
 int main()
 {
     zhttp::Log::Init(zlog::LogLevel::value::INFO);

@@ -48,21 +48,6 @@ find_library(HIREDIS_LIB
     REQUIRED
 )
 
-
-# 检索所有头文件目录路径
-file(GLOB_RECURSE ALL_HEADER_FILES
-        ${PROJECT_SOURCE_DIR}/zlog/*.hpp
-        ${PROJECT_SOURCE_DIR}/include/*.h
-        ${PROJECT_SOURCE_DIR}/test/*.h)
-
-set(INCLUDE_DIRS "")
-foreach (_headerFile ${ALL_HEADER_FILES})
-    get_filename_component(_dir ${_headerFile} PATH)
-    list(APPEND INCLUDE_DIRS ${_dir})
-endforeach ()
-list(REMOVE_DUPLICATES INCLUDE_DIRS)
-include_directories(${INCLUDE_DIRS})
-
 # 源文件收集
 file(GLOB DB_POOL_SRC ${PROJECT_SOURCE_DIR}/source/db_pool/*.cpp)
 file(GLOB HTTP_SRC ${PROJECT_SOURCE_DIR}/source/http/*.cpp)
@@ -83,6 +68,15 @@ file(GLOB ALL_SRC
 # 生成动态库
 add_library(zhttpserver SHARED ${ALL_SRC})
 
+# 设置目标包含目录 - 使用 target_include_directories 替代全局 include_directories
+target_include_directories(zhttpserver
+    PUBLIC
+        # 公共头文件目录，供外部项目使用
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/zlog>
+        $<INSTALL_INTERFACE:include>
+)
+
 set_target_properties(zhttpserver PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/lib/debug
         LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/lib/release
@@ -90,29 +84,50 @@ set_target_properties(zhttpserver PROPERTIES
 
 # 链接其他第三方库
 target_link_libraries(zhttpserver
-        ${MUDUO_NET_LIB}
-        ${MUDUO_BASE_LIB}
-        ${MYSQL_LIB}
-        ${MYSQLCPPCONN_LIB}
-        ${SSL_LIB}
-        ${CRYPTO_LIB}
-        pthread
-        fmt::fmt
-        ${REDIS_PLUS_PLUS_LIB}
-        ${HIREDIS_LIB}
+        PUBLIC
+            ${MUDUO_NET_LIB}
+            ${MUDUO_BASE_LIB}
+            fmt::fmt
+            ${MYSQL_LIB}
+            ${MYSQLCPPCONN_LIB}
+            ${SSL_LIB}
+            ${CRYPTO_LIB}
+            ${REDIS_PLUS_PLUS_LIB}
+            ${HIREDIS_LIB}
+            pthread
 )
 
-# 主程序和单元测试只链接动态库
+# 主程序
 add_executable(server example/example.cpp)
-target_link_libraries(server zhttpserver)
+target_link_libraries(server PRIVATE zhttpserver)
 
+# 单元测试
 add_executable(unit_tests test/test.cpp)
+target_include_directories(unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/test)
 target_link_libraries(unit_tests
-        zhttpserver
-        GTest::GTest
-        GTest::Main
+        PRIVATE
+            zhttpserver
+            GTest::GTest
+            GTest::Main
 )
 
 # 单元测试
 enable_testing()
 add_test(NAME AllUnitTests COMMAND unit_tests)
+
+# 安装规则（可选）
+install(TARGETS zhttpserver
+    EXPORT ZHttpServerTargets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
+
+install(DIRECTORY include/ DESTINATION include
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(DIRECTORY zlog/ DESTINATION include/zlog
+    FILES_MATCHING PATTERN "*.hpp"
+)
