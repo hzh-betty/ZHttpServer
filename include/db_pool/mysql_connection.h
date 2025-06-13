@@ -9,7 +9,7 @@
 #include <cppconn/resultset.h>
 #include <mysql_driver.h>
 #include <mysql/mysql.h>
-#include <muduo/base/Logging.h>
+#include "../log/logger.h"
 #include "db_exception.h"
 
 namespace zhttp::zdb
@@ -78,7 +78,7 @@ namespace zhttp::zdb
             }
             catch (sql::SQLException &e)
             {
-                LOG_ERROR << "execute_query error: " << e.what();
+                ZHTTP_LOG_ERROR("execute_query error: {}", e.what());
                 throw DBException(e.what());
             }
         }
@@ -98,7 +98,7 @@ namespace zhttp::zdb
             }
             catch (sql::SQLException &e)
             {
-                LOG_ERROR << "execute_update error: " << e.what();
+                ZHTTP_LOG_ERROR("execute_update error: {}", e.what());
                 throw DBException(e.what());
             }
         }
