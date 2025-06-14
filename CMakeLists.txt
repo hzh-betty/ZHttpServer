@@ -68,13 +68,13 @@ file(GLOB ALL_SRC
 # 生成动态库
 add_library(zhttpserver SHARED ${ALL_SRC})
 
-# 设置目标包含目录 - 使用 target_include_directories 替代全局 include_directories
+# 设置目标包含目录 
 target_include_directories(zhttpserver
     PUBLIC
         # 公共头文件目录，供外部项目使用
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/zlog>
-        $<INSTALL_INTERFACE:include>
+
 )
 
 set_target_properties(zhttpserver PROPERTIES
@@ -114,20 +114,3 @@ target_link_libraries(unit_tests
 # 单元测试
 enable_testing()
 add_test(NAME AllUnitTests COMMAND unit_tests)
-
-# 安装规则（可选）
-install(TARGETS zhttpserver
-    EXPORT ZHttpServerTargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include
-)
-
-install(DIRECTORY include/ DESTINATION include
-    FILES_MATCHING PATTERN "*.h"
-)
-
-install(DIRECTORY zlog/ DESTINATION include/zlog
-    FILES_MATCHING PATTERN "*.hpp"
-)
