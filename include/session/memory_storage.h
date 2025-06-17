@@ -3,7 +3,7 @@
 
 namespace zhttp::zsession
 {
-    class InMemoryStorage final : public Storage
+    class InMemoryStorage final : public SessionStorage
     {
     public:
         InMemoryStorage() = default;

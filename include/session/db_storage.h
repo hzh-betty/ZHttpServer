@@ -3,7 +3,7 @@
 
 namespace zhttp::zsession
 {
-    class DbSessionStorage final : public Storage
+    class DbSessionStorage final : public SessionStorage
     {
     public:
         DbSessionStorage() = default;

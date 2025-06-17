@@ -27,7 +27,7 @@ namespace zhttp::zsession
         std::shared_ptr<Session> get_session(const HttpRequest &request, HttpResponse *response);
 
         // 设置会话存储
-        void set_session_storage(std::shared_ptr<Storage> &&session_storage);
+        void set_session_storage(std::shared_ptr<SessionStorage> &&session_storage);
 
         // 销毁会话
         void destroy_session(const std::string &session_id) const;
@@ -51,7 +51,7 @@ namespace zhttp::zsession
         static void set_session_id_to_response(HttpResponse *response, const std::string &session_id);
 
     private:
-        std::shared_ptr<Storage> session_storage_; // 会话存储
+        std::shared_ptr<SessionStorage> session_storage_; // 会话存储
         std::mt19937 rng_ = std::mt19937(std::random_device{}()); // 随机数生成器
         mutable std::shared_mutex rb_mutex_{}; // 读写锁
     };

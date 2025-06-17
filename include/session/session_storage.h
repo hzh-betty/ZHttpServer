@@ -3,10 +3,10 @@
 
 namespace zhttp::zsession
 {
-    class Storage
+    class SessionStorage
     {
     public:
-        virtual ~Storage() = default;
+        virtual ~SessionStorage() = default;
 
         // 存储会话
         virtual void store(const std::shared_ptr<Session> &session) = 0;
@@ -25,7 +25,7 @@ namespace zhttp::zsession
     class StorageFactory
     {
     public:
-        static std::shared_ptr<Storage> create(Args &&... args)
+        static std::shared_ptr<SessionStorage> create(Args &&... args)
         {
             return std::make_shared<StorgeType>(std::forward<Args>(args)...);
         }
