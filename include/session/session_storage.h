@@ -6,6 +6,8 @@ namespace zhttp::zsession
     class SessionStorage
     {
     public:
+        using ptr = std::shared_ptr<SessionStorage>;
+
         virtual ~SessionStorage() = default;
 
         // 存储会话

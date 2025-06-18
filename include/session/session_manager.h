@@ -27,7 +27,7 @@ namespace zhttp::zsession
         std::shared_ptr<Session> get_session(const HttpRequest &request, HttpResponse *response);
 
         // 设置会话存储
-        void set_session_storage(std::shared_ptr<SessionStorage> &&session_storage);
+        void set_session_storage(SessionStorage::ptr session_storage);
 
         // 销毁会话
         void destroy_session(const std::string &session_id) const;
